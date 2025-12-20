@@ -23,37 +23,56 @@ const HomeScreen = () => {
       useNativeDriver: true
     }).start();
   };
-
   // Pick image from gallery or camera
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-      analyzePlant(result.assets[0].uri);
-    }
-  };
-
-  // Dummy function to send image to backend / ChatGPT
-  const analyzePlant = async (uri: string) => {
     try {
-      // TODO: Replace with your backend API
-      // const formData = new FormData();
-      // formData.append("plant_image", { uri, name: "plant.jpg", type: "image/jpeg" });
-      // const response = await fetch("https://your-backend.com/analyze", { method: "POST", body: formData });
-      // const data = await response.json();
-      // setDisease(data.disease);
-
-      // Temporary mock
-      setDisease("Leaf Rust Detected!");
+      const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+  
+      if (status !== "granted") {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          alert("Permission required to access gallery");
+          return;
+        }
+      }
+  
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+        setImage(uri);            // ✅ YOU MISSED THIS
+        analyzePlant(uri);
+      }
     } catch (err) {
-      console.log(err);
-      setDisease("Failed to analyze plant.");
+      console.log("ImagePicker error:", err);
     }
   };
+  
+
+  const analyzePlant = async (uri: string) => {
+    const formData = new FormData();
+  
+    formData.append("file", {
+      uri: uri,
+      name: "plant.jpg",
+      type: "image/jpeg",
+    } as any);
+  
+    const response = await fetch("http://192.168.29.122:8000/plant/analyze", {
+      method: "POST",
+      body: formData,
+      // ❌ DO NOT SET HEADERS
+    });
+  
+    const data = await response.json();
+    setDisease(data.disease);
+  };
+  
+  
 
   return (
     <View style={styles.container}>
@@ -72,7 +91,8 @@ const HomeScreen = () => {
           { transform: [{ translateY: slideAnim }] }
         ]}
       >
-        <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
+        <TouchableOpacity style={styles.uploadButton} onPress={pickImage}
+  activeOpacity={0.7}>
           <Text style={styles.buttonText}>
             {image ? "Change Image" : "Upload Plant Image"}
           </Text>
