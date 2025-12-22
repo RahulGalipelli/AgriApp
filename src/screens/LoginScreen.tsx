@@ -21,6 +21,7 @@ type FormData = {
   mobileNumber: string;
 };
 
+const API_BASE = "http://192.168.1.10:8002";
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -70,7 +71,7 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     try {
       // Replace with your backend API
-      const response = await fetch('http://192.168.29.119:8000/send-otp', {
+      const response = await fetch(`${API_BASE}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber: data.mobileNumber })
@@ -99,7 +100,7 @@ const LoginScreen: React.FC = () => {
     }
     setLoading(true);
     try {
-      const response = await fetch('http://192.168.29.119:8000/verify-otp', {
+      const response = await fetch(`${API_BASE}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber, otp })
@@ -121,7 +122,7 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     try {
       // Replace with your backend API
-      const response = await fetch('http://192.168.29.119:8000/resend-otp', {
+      const response = await fetch(`${API_BASE}/resend-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber })

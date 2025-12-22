@@ -8,8 +8,10 @@ import {
   Image,
   Platform
 } from "react-native";
+import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-
+import * as ImageManipulator from 'expo-image-manipulator';
+const API_BASE = "http://192.168.1.10:8002";
 const HomeScreen = () => {
   const slideAnim = useRef(new Animated.Value(0)).current; // start position
   const [image, setImage] = useState<string | null>(null);
@@ -24,36 +26,40 @@ const HomeScreen = () => {
     }).start();
   };
   // Pick image from gallery or camera
+
   const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
-  
-      if (status !== "granted") {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission.granted) {
-          alert("Permission required to access gallery");
-          return;
-        }
-      }
-  
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 1,
-      });
-  
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        setImage(uri);            // ✅ YOU MISSED THIS
-        analyzePlant(uri);
-      }
-    } catch (err) {
-      console.log("ImagePicker error:", err);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      let uri = result.assets[0].uri;
+
+      // Convert HEIC/HEIF to JPEG
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [],
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      setImage(manipResult.uri);
+      analyzePlant(manipResult.uri);
     }
   };
+
   
 
   const analyzePlant = async (uri: string) => {
+    let fileUri = uri;
+
+    // iOS ph:// URIs need to be copied to a local file
+    if (uri.startsWith("ph://")) {
+      const dest = FileSystem.cacheDirectory + "plant.jpg";
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      fileUri = dest;
+    }
     const formData = new FormData();
   
     formData.append("file", {
@@ -62,14 +68,21 @@ const HomeScreen = () => {
       type: "image/jpeg",
     } as any);
   
-    const response = await fetch("http://192.168.29.122:8000/plant/analyze", {
+    const response = await fetch(`${API_BASE}/plant/analyze`, {
       method: "POST",
       body: formData,
       // ❌ DO NOT SET HEADERS
     });
   
+    if (!response.ok) {
+      const text = await response.text();
+      console.log("Server error:", text);
+      alert("Error analyzing plant. See console.");
+      return;
+    }
+
     const data = await response.json();
-    setDisease(data.disease);
+    setDisease(data.disease_name || JSON.stringify(data));
   };
   
   
