@@ -4,8 +4,10 @@ import { TextInput, Button, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
+import { TouchableOpacity } from "react-native";
 
 import SmsRetriever from 'react-native-sms-retriever'; // Android auto-read
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type RootStackParamList = {
   Login: undefined;
@@ -23,6 +25,12 @@ type FormData = {
 
 const API_BASE = "http://192.168.1.10:8002";
 const LoginScreen: React.FC = () => {
+  const resetOnboarding = async () => {
+    await AsyncStorage.removeItem("onboardingDone");
+    await AsyncStorage.removeItem("language");
+    await AsyncStorage.removeItem("audioEnabled");
+    alert("Onboarding reset. Restart app.");
+  };
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     defaultValues: { mobileNumber: "" }
@@ -38,11 +46,13 @@ const LoginScreen: React.FC = () => {
 
   // Countdown timer
   useEffect(() => {
-    let interval: NodeJS.Timer;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (otpSent && timer > 0) {
       interval = setInterval(() => setTimer(prev => prev - 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval !== undefined) clearInterval(interval);
+    };
   }, [otpSent, timer]);
 
   // Android SMS auto-read
@@ -51,7 +61,7 @@ const LoginScreen: React.FC = () => {
       SmsRetriever.startSmsRetriever()
         .then(() => {
           SmsRetriever.addSmsListener(event => {
-            const message = event.message;
+            const message = event.message ?? "";
             const code = message.match(/\d{6}/)?.[0]; // extract OTP
             if (code) setOtp(code);
             SmsRetriever.removeSmsListener();
@@ -107,6 +117,7 @@ const LoginScreen: React.FC = () => {
       });
       const result = await response.json();
       if (result.success) {
+        await AsyncStorage.setItem("isLoggedIn", "true");
         navigation.replace("Home");
       } else {
         Alert.alert("Error", result.message || "Invalid OTP");
@@ -145,6 +156,9 @@ const LoginScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={resetOnboarding}>
+  <Text>Reset Language Selection</Text>
+</TouchableOpacity>
       <Text style={styles.title}>Login</Text>
 
       <Controller
