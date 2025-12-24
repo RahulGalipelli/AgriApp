@@ -23,7 +23,7 @@ type FormData = {
   mobileNumber: string;
 };
 
-const API_BASE = "http://192.168.1.10:8002";
+const API_BASE = "http://192.168.1.10:8002/auth";
 const LoginScreen: React.FC = () => {
   const resetOnboarding = async () => {
     await AsyncStorage.removeItem("onboardingDone");
@@ -81,12 +81,13 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     try {
       // Replace with your backend API
-      const response = await fetch(`${API_BASE}/send-otp`, {
+      const response = await fetch(`${API_BASE}/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber: data.mobileNumber })
       });
       const result = await response.json();
+      console.log(result);
       if (result.success) {
         setOtpSent(true);
         setTimer(6);
@@ -102,44 +103,56 @@ const LoginScreen: React.FC = () => {
     }
   };
 
-  // Verify OTP API placeholder
   const verifyOtp = async () => {
     if (otp.length !== 6) {
       Alert.alert("Error", "Enter a valid 6-digit OTP");
       return;
     }
+  
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobileNumber, otp })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber, otp }),
       });
+  
       const result = await response.json();
-      if (result.success) {
-        await AsyncStorage.setItem("isLoggedIn", "true");
-        navigation.replace("Home");
-      } else {
-        Alert.alert("Error", result.message || "Invalid OTP");
+  
+      if (!response.ok) {
+        Alert.alert("Error", result.detail || "Invalid OTP");
+        return;
       }
-    } catch (error) {
+  
+      // ✅ STORE TOKENS
+      await AsyncStorage.multiSet([
+        ["accessToken", result.access_token],
+        ["refreshToken", result.refresh_token],
+        ["user", JSON.stringify(result.user)],
+        ["isLoggedIn", "true"],
+      ]);
+  
+      navigation.replace("Home");
+    } catch (err) {
       Alert.alert("Error", "Network error, try again later");
     } finally {
       setLoading(false);
     }
   };
+  
 
   const resendOtp = async () => {
     setLoading(true);
     try {
-      // Replace with your backend API
-      const response = await fetch(`${API_BASE}/resend-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobileNumber })
+      const response = await fetch(`${API_BASE}/request-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobileNumber }),
       });
+  
       const result = await response.json();
-      if (result.success) {
+  
+      if (response.ok && result.success) {
         setTimer(60);
         setOtp("");
         otpInputRef.current?.focus();
@@ -153,6 +166,7 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <View style={styles.container}>

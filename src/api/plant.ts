@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system";
 import { API_BASE_URL } from "../config";
 import type { PlantAnalysisResult } from "../types/plant";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function tryParseJsonObject(text: string): Record<string, unknown> | null {
   const trimmed = text.trim();
@@ -107,10 +108,17 @@ export async function analyzePlantImage(imageUri: string): Promise<PlantAnalysis
       type: "image/jpeg"
     } as any
   );
+  const token = await AsyncStorage.getItem("accessToken");
 
+
+  
   const response = await fetch(`${API_BASE_URL}/plant/analyze`, {
     method: "POST",
-    body: formData
+    body: formData,
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "multipart/form-data"
+    }
   });
   if (!response.ok) {
     const text = await response.text();

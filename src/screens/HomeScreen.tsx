@@ -5,9 +5,15 @@ import type { RootStackParamList } from "../navigations/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
+
+
 const HomeScreen = ({ navigation }: Props) => {
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.logout_button}>Logout</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>AgriCure</Text>
       <Text style={styles.subtitle}>Choose an option</Text>
 
@@ -42,5 +48,6 @@ const styles = StyleSheet.create({
   primaryButton: { backgroundColor: "#2E7D32", padding: 14, borderRadius: 12, marginBottom: 12, alignItems: "center" },
   primaryButtonText: { color: "#fff", fontWeight: "800" },
   button: { backgroundColor: "#1565C0", padding: 14, borderRadius: 12, marginBottom: 12, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "800" }
+  buttonText: { color: "#fff", fontWeight: "800" },
+  logout_button:{color: "#1565C0", marginBottom: 100}
 });
