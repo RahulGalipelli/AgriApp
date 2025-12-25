@@ -48,6 +48,7 @@ type Action =
   | { type: "SET_CART_LOADING"; loading: boolean }
   | { type: "SET_CART"; cart: CartLine[] }
   | { type: "SET_CART_ERROR"; error: string | null }
+  | { type: "ADD_TO_CART_OPTIMISTIC"; productId: string; quantity: number }
   | { type: "SET_ORDERS_LOADING"; loading: boolean }
   | { type: "SET_ORDERS"; orders: Order[] }
   | { type: "SET_ORDERS_ERROR"; error: string | null }
@@ -68,6 +69,26 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, cart: action.cart, loading: { ...state.loading, cart: false }, error: { ...state.error, cart: null } };
     case "SET_CART_ERROR":
       return { ...state, loading: { ...state.loading, cart: false }, error: { ...state.error, cart: action.error } };
+    case "ADD_TO_CART_OPTIMISTIC":
+      // Optimistically add item to cart immediately
+      const existingItem = state.cart.find((item) => item.productId === action.productId);
+      if (existingItem) {
+        // Update quantity if item already exists
+        return {
+          ...state,
+          cart: state.cart.map((item) =>
+            item.productId === action.productId
+              ? { ...item, quantity: item.quantity + action.quantity }
+              : item
+          ),
+        };
+      } else {
+        // Add new item
+        return {
+          ...state,
+          cart: [...state.cart, { productId: action.productId, quantity: action.quantity }],
+        };
+      }
     case "SET_ORDERS_LOADING":
       return { ...state, loading: { ...state.loading, orders: action.loading } };
     case "SET_ORDERS":
@@ -105,19 +126,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Load products on mount
+  // Load data only if authenticated
   useEffect(() => {
-    loadProducts();
-  }, []);
-
-  // Load cart on mount
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  // Load orders on mount
-  useEffect(() => {
-    loadOrders();
+    const checkAuthAndLoad = async () => {
+      try {
+        const token = await AsyncStorage.getItem("accessToken");
+        const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
+        
+        // Only fetch data if user is authenticated
+        if (token && isLoggedIn === "true") {
+          loadProducts();
+          loadCart();
+          loadOrders();
+        } else {
+          // Set empty state if not authenticated
+          dispatch({ type: "SET_PRODUCTS", products: [] });
+          dispatch({ type: "SET_CART", cart: [] });
+          dispatch({ type: "SET_ORDERS", orders: [] });
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        // Set empty state on error
+        dispatch({ type: "SET_PRODUCTS", products: [] });
+        dispatch({ type: "SET_CART", cart: [] });
+        dispatch({ type: "SET_ORDERS", orders: [] });
+      }
+    };
+    
+    checkAuthAndLoad();
   }, []);
 
   // Persist orders locally
@@ -129,6 +165,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadProducts = async () => {
     try {
+      // Check authentication before fetching
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        dispatch({ type: "SET_PRODUCTS", products: [] });
+        return;
+      }
+
       dispatch({ type: "SET_PRODUCTS_LOADING", loading: true });
       const products = await productsAPI.getProducts();
       // Map API products to store format
@@ -143,14 +186,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Failed to load products:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load products";
-      dispatch({ type: "SET_PRODUCTS_ERROR", error: errorMessage });
-      // Set empty array on error so UI doesn't break
-      dispatch({ type: "SET_PRODUCTS", products: [] });
+      // If it's an auth error, silently set empty array
+      if (errorMessage.includes("Authentication") || errorMessage.includes("401")) {
+        dispatch({ type: "SET_PRODUCTS", products: [] });
+      } else {
+        dispatch({ type: "SET_PRODUCTS_ERROR", error: errorMessage });
+        dispatch({ type: "SET_PRODUCTS", products: [] });
+      }
     }
   };
 
   const loadCart = async () => {
     try {
+      // Check authentication before fetching
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        dispatch({ type: "SET_CART", cart: [] });
+        return;
+      }
+
       dispatch({ type: "SET_CART_LOADING", loading: true });
       const cart = await cartAPI.getCart();
       // Map API cart to store format
@@ -174,6 +228,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadOrders = async () => {
     try {
+      // Check authentication before fetching
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        // Try to load from local storage as fallback
+        try {
+          const ordersRaw = await AsyncStorage.getItem(STORAGE_ORDERS_KEY);
+          if (ordersRaw) {
+            const ordersParsed = JSON.parse(ordersRaw) as unknown;
+            const orders = Array.isArray(ordersParsed)
+              ? ordersParsed.filter((x) => x && typeof x === "object").map((x) => x as Order)
+              : [];
+            dispatch({ type: "SET_ORDERS", orders });
+          } else {
+            dispatch({ type: "SET_ORDERS", orders: [] });
+          }
+        } catch {
+          dispatch({ type: "SET_ORDERS", orders: [] });
+        }
+        return;
+      }
+
       dispatch({ type: "SET_ORDERS_LOADING", loading: true });
       const orders = await ordersAPI.getOrders();
       // Map API orders to store format
@@ -195,7 +270,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load orders";
       // If it's an auth error, don't show error, just set empty orders
       if (errorMessage.includes("Authentication") || errorMessage.includes("401")) {
-        dispatch({ type: "SET_ORDERS", orders: [] });
+        // Try to load from local storage as fallback
+        try {
+          const ordersRaw = await AsyncStorage.getItem(STORAGE_ORDERS_KEY);
+          if (ordersRaw) {
+            const ordersParsed = JSON.parse(ordersRaw) as unknown;
+            const orders = Array.isArray(ordersParsed)
+              ? ordersParsed.filter((x) => x && typeof x === "object").map((x) => x as Order)
+              : [];
+            dispatch({ type: "SET_ORDERS", orders });
+          } else {
+            dispatch({ type: "SET_ORDERS", orders: [] });
+          }
+        } catch {
+          dispatch({ type: "SET_ORDERS", orders: [] });
+        }
       } else {
         dispatch({ type: "SET_ORDERS_ERROR", error: errorMessage });
         // Try to load from local storage as fallback
@@ -231,12 +320,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.cart, state.products]);
 
   const addToCart = async (productId: string, quantity: number = 1) => {
+    // Optimistically update UI immediately
+    dispatch({ type: "ADD_TO_CART_OPTIMISTIC", productId, quantity });
+    
     try {
       dispatch({ type: "SET_CART_LOADING", loading: true });
       await cartAPI.addToCart(productId, quantity);
-      await loadCart(); // Reload cart from API
+      await loadCart(); // Reload cart from API to sync with backend
     } catch (error) {
       console.error("Failed to add to cart:", error);
+      // Revert optimistic update on error by reloading cart
+      await loadCart();
       dispatch({ type: "SET_CART_ERROR", error: error instanceof Error ? error.message : "Failed to add to cart" });
       throw error;
     }

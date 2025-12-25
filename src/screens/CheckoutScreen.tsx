@@ -7,6 +7,7 @@ import { colors, typography, spacing } from "../theme";
 import { Header } from "../components/Header";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { useI18n } from "../i18n";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Checkout">;
 
@@ -16,6 +17,7 @@ export default function CheckoutScreen({ navigation }: Props) {
   const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("COD");
   const { cart, cartItemCount, cartTotal, placeOrder } = useAppStore();
+  const { t } = useI18n();
 
   const submit = async () => {
     if (cart.length === 0) {
@@ -23,42 +25,42 @@ export default function CheckoutScreen({ navigation }: Props) {
       return;
     }
     if (!address.trim()) {
-      Alert.alert("Error", "Please enter a delivery address");
+      Alert.alert(t("common.error"), t("checkout.enterAddress"));
       return;
     }
     try {
       const orderId = await placeOrder({ address });
     navigation.replace("OrderConfirmation", { orderId });
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Failed to place order");
+      Alert.alert(t("common.error"), error instanceof Error ? error.message : t("checkout.placeOrderError"));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Checkout" />
+      <Header title={t("checkout.title")} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <Card variant="elevated" style={styles.summaryCard}>
-          <Text style={styles.label}>Order Summary</Text>
+          <Text style={styles.label}>{t("checkout.orderSummary")}</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Items</Text>
+            <Text style={styles.summaryLabel}>{t("checkout.items")}</Text>
             <Text style={styles.summaryValue}>{cartItemCount}</Text>
           </View>
           <View style={[styles.summaryRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t("checkout.total")}</Text>
             <Text style={styles.totalValue}>₹{cartTotal}</Text>
           </View>
         </Card>
 
         <Card variant="elevated" style={styles.formCard}>
-      <Text style={styles.label}>Delivery Address</Text>
+      <Text style={styles.label}>{t("checkout.deliveryAddress")}</Text>
       <TextInput
         value={address}
         onChangeText={setAddress}
-        placeholder="House, Street, Village, Pincode"
+        placeholder={t("checkout.addressPlaceholder")}
         style={styles.input}
             multiline
             numberOfLines={3}
@@ -66,7 +68,7 @@ export default function CheckoutScreen({ navigation }: Props) {
         </Card>
 
         <Card variant="elevated" style={styles.paymentCard}>
-          <Text style={styles.label}>Payment Method</Text>
+          <Text style={styles.label}>{t("checkout.paymentMethod")}</Text>
           <View style={styles.paymentOptions}>
             {(["COD", "UPI", "CARD", "NETBANKING"] as PaymentMethod[]).map((method) => (
               <TouchableOpacity
@@ -84,10 +86,10 @@ export default function CheckoutScreen({ navigation }: Props) {
                     paymentMethod === method && styles.paymentOptionTextSelected,
                   ]}
                 >
-                  {method === "COD" ? "💵 Cash on Delivery" :
-                   method === "UPI" ? "📱 UPI" :
-                   method === "CARD" ? "💳 Card" :
-                   "🏦 Net Banking"}
+                  {method === "COD" ? t("checkout.cashOnDelivery") :
+                   method === "UPI" ? t("checkout.upi") :
+                   method === "CARD" ? t("checkout.card") :
+                   t("checkout.netBanking")}
                 </Text>
                 {paymentMethod === method && <Text style={styles.checkmark}>✓</Text>}
               </TouchableOpacity>
@@ -96,7 +98,7 @@ export default function CheckoutScreen({ navigation }: Props) {
         </Card>
 
         <Button
-          title="Place Order"
+          title={t("checkout.placeOrder")}
           onPress={submit}
           fullWidth
           style={styles.button}

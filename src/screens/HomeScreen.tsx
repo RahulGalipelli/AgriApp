@@ -1,50 +1,75 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
 import { colors, typography, spacing, shadows } from "../theme";
 import { FeatureCard } from "../components/FeatureCard";
 import { Card } from "../components/Card";
+import { useI18n } from "../i18n";
+import { useAppStore } from "../state/store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 const HomeScreen = ({ navigation }: Props) => {
+  const { t } = useI18n();
+  const { refreshProducts, refreshCart, refreshOrders } = useAppStore();
+
+  // Refresh data when screen is focused (e.g., after login)
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadData = async () => {
+        const token = await AsyncStorage.getItem("accessToken");
+        const isLoggedIn = await AsyncStorage.getItem("isLoggedIn");
+        
+        if (token && isLoggedIn === "true") {
+          // Refresh all data when screen is focused and user is logged in
+          refreshProducts().catch(console.error);
+          refreshCart().catch(console.error);
+          refreshOrders().catch(console.error);
+        }
+      };
+      
+      loadData();
+    }, [refreshProducts, refreshCart, refreshOrders])
+  );
   const features = [
     {
       icon: "🌱",
-      title: "Scan Plant",
-      subtitle: "Upload photo to detect diseases",
+      title: t("home.scanPlant"),
+      subtitle: t("home.scanPlantSubtitle"),
       onPress: () => navigation.navigate("ScanPlant"),
       gradient: true,
     },
     {
       icon: "🛒",
-      title: "Shop Products",
-      subtitle: "Browse treatment products",
+      title: t("home.shopProducts"),
+      subtitle: t("home.shopProductsSubtitle"),
       onPress: () => navigation.navigate("Products"),
     },
     {
       icon: "📦",
-      title: "My Orders",
-      subtitle: "Track your orders",
+      title: t("home.myOrders"),
+      subtitle: t("home.myOrdersSubtitle"),
       onPress: () => navigation.navigate("Orders"),
     },
     {
       icon: "💬",
-      title: "Support",
-      subtitle: "Call or video chat with experts",
+      title: t("home.support"),
+      subtitle: t("home.supportSubtitle"),
       onPress: () => navigation.navigate("Support"),
     },
     {
       icon: "👥",
-      title: "Community",
-      subtitle: "Tips and discussions",
+      title: t("home.community"),
+      subtitle: t("home.communitySubtitle"),
       onPress: () => navigation.navigate("Community"),
     },
     {
       icon: "⚙️",
-      title: "Profile",
-      subtitle: "Settings and preferences",
+      title: t("home.profile"),
+      subtitle: t("home.profileSubtitle"),
       onPress: () => navigation.navigate("Profile"),
     },
   ];
@@ -56,7 +81,7 @@ const HomeScreen = ({ navigation }: Props) => {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Welcome back!</Text>
+          <Text style={styles.greeting}>{t("home.welcome")}</Text>
           <Text style={styles.title}>AgriCure</Text>
         </View>
         <TouchableOpacity
@@ -64,7 +89,7 @@ const HomeScreen = ({ navigation }: Props) => {
           onPress={() => navigation.navigate("Login")}
           activeOpacity={0.7}
         >
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t("home.logout")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -73,9 +98,9 @@ const HomeScreen = ({ navigation }: Props) => {
         <View style={styles.heroContent}>
           <Text style={styles.heroEmoji}>🌾</Text>
           <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>Plant Health Detection</Text>
+            <Text style={styles.heroTitle}>{t("home.heroTitle")}</Text>
             <Text style={styles.heroSubtitle}>
-              Get instant diagnosis and treatment recommendations
+              {t("home.heroSubtitle")}
             </Text>
           </View>
         </View>
@@ -87,7 +112,7 @@ const HomeScreen = ({ navigation }: Props) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={styles.sectionTitle}>{t("home.quickActions")}</Text>
         {features.map((feature, index) => (
           <FeatureCard
             key={index}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import { Button } from "react-native-paper";
 import { colors, typography, spacing } from "../theme";
+import { useI18n } from "../i18n";
 
 
 
@@ -82,13 +83,13 @@ const LANGUAGES = [
 
 
 export default function LanguageScreen({ navigation }: any) {
-  const [selectedLang, setSelectedLang] = useState("en");
+  const { language, setLanguage, t } = useI18n();
+  const [selectedLang, setSelectedLang] = useState<"en" | "hi" | "ta" | "te" | "kn" | "ml">(language);
   const [audioEnabled, setAudioEnabled] = useState(true);
   
-  const continueNext = async () => {
-    await AsyncStorage.setItem("onboardingDone", "true");
-    navigation.replace("Login");
-  };
+  useEffect(() => {
+    setSelectedLang(language);
+  }, [language]);
   
   const playAudioGuide = async () => {
     if (!audioEnabled) return;
@@ -103,26 +104,29 @@ export default function LanguageScreen({ navigation }: any) {
   };
 
   const continueApp = async () => {
-    await AsyncStorage.setItem("language", selectedLang);
+    await setLanguage(selectedLang);
     await AsyncStorage.setItem("audioEnabled", JSON.stringify(audioEnabled));
     await AsyncStorage.setItem("onboardingDone", "true");
 
     navigation.replace("Login");
   };
   const backApp = async () => {
-    await AsyncStorage.setItem("language", "");
-    await AsyncStorage.setItem("audioEnabled", "");
     await AsyncStorage.setItem("onboardingDone", "false");
-
     navigation.replace("Splash");
+  };
+  
+  const handleLanguageSelect = async (langCode: "en" | "hi" | "ta" | "te" | "kn" | "ml") => {
+    setSelectedLang(langCode);
+    await setLanguage(langCode);
+    playAudioGuide();
   };
 
   return (
     <View style={styles.container}>
-        <TouchableOpacity style={styles.backButton} onPress={backApp}><Text style={styles.continueText}>Back</Text></TouchableOpacity>
-      <Text style={styles.title}>
-        
-        Choose Your Language</Text>
+        <TouchableOpacity style={styles.backButton} onPress={backApp}>
+          <Text style={styles.continueText}>{t("common.back")}</Text>
+        </TouchableOpacity>
+      <Text style={styles.title}>{t("language.title")}</Text>
 
       <FlatList
         data={LANGUAGES}
@@ -133,10 +137,7 @@ export default function LanguageScreen({ navigation }: any) {
               styles.langButton,
               selectedLang === item.code && styles.selected
             ]}
-            onPress={() => {
-              setSelectedLang(item.code);
-              playAudioGuide();
-            }}
+            onPress={() => handleLanguageSelect(item.code as any)}
           >
             <Text style={styles.langText}>{item.label}</Text>
           </TouchableOpacity>
@@ -144,12 +145,12 @@ export default function LanguageScreen({ navigation }: any) {
       />
 
       <View style={styles.audioRow}>
-        <Text style={styles.audioText}>Audio Instructions</Text>
+        <Text style={styles.audioText}>{t("language.audioInstructions")}</Text>
         <Switch value={audioEnabled} onValueChange={setAudioEnabled} />
       </View>
 
       <TouchableOpacity style={styles.continueButton} onPress={continueApp}>
-        <Text style={styles.continueText}>Continue</Text>
+        <Text style={styles.continueText}>{t("common.continue")}</Text>
       </TouchableOpacity>
     </View>
   );

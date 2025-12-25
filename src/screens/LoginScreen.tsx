@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, typography, spacing, shadows } from "../theme";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { useI18n } from "../i18n";
 
 type RootStackParamList = {
   Login: undefined;
@@ -35,6 +36,7 @@ type FormData = {
 const API_BASE = "http://192.168.1.10:8002/auth";
 
 const LoginScreen: React.FC = () => {
+  const { t } = useI18n();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     defaultValues: { mobileNumber: "" }
@@ -60,7 +62,7 @@ const LoginScreen: React.FC = () => {
 
   const sendOtp = async (data: FormData) => {
     if (data.mobileNumber.length !== 10) {
-      Alert.alert("Error", "Enter a valid 10-digit mobile number");
+      Alert.alert(t("common.error"), t("login.invalidPhone"));
       return;
     }
     setMobileNumber(data.mobileNumber);
@@ -77,10 +79,10 @@ const LoginScreen: React.FC = () => {
         setTimer(60);
         otpInputRef.current?.focus();
       } else {
-        Alert.alert("Error", result.message || "Failed to send OTP");
+        Alert.alert(t("common.error"), result.message || t("login.invalidOTP"));
       }
     } catch (error) {
-      Alert.alert("Error", "Network error, try again later");
+      Alert.alert(t("common.error"), t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ const LoginScreen: React.FC = () => {
 
   const verifyOtp = async () => {
     if (otp.length !== 6) {
-      Alert.alert("Error", "Enter a valid 6-digit OTP");
+      Alert.alert(t("common.error"), t("login.invalidOTP"));
       return;
     }
   
@@ -103,7 +105,7 @@ const LoginScreen: React.FC = () => {
       const result = await response.json();
   
       if (!response.ok) {
-        Alert.alert("Error", result.detail || "Invalid OTP");
+        Alert.alert(t("common.error"), result.detail || t("login.invalidOTP"));
         return;
       }
   
@@ -116,7 +118,7 @@ const LoginScreen: React.FC = () => {
   
       navigation.replace("Home");
     } catch (err) {
-      Alert.alert("Error", "Network error, try again later");
+      Alert.alert(t("common.error"), t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -137,12 +139,12 @@ const LoginScreen: React.FC = () => {
         setTimer(60);
         setOtp("");
         otpInputRef.current?.focus();
-        Alert.alert("Success", "OTP resent successfully");
+        Alert.alert(t("common.success"), t("login.resendOTP"));
       } else {
-        Alert.alert("Error", result.message || "Failed to resend OTP");
+        Alert.alert(t("common.error"), result.message || t("login.invalidOTP"));
       }
     } catch (error) {
-      Alert.alert("Error", "Network error, try again later");
+      Alert.alert(t("common.error"), t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -162,9 +164,9 @@ const LoginScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.emoji}>🌾</Text>
-          <Text style={styles.title}>Welcome to AgriCure</Text>
+          <Text style={styles.title}>{t("login.title")}</Text>
           <Text style={styles.subtitle}>
-            {otpSent ? "Enter the OTP sent to your mobile" : "Enter your mobile number to continue"}
+            {otpSent ? t("login.enterOTP") : t("login.enterPhone")}
           </Text>
         </View>
 
@@ -181,7 +183,7 @@ const LoginScreen: React.FC = () => {
                 }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <TextInput
-                    label="Mobile Number"
+                    label={t("login.phoneNumber")}
                     mode="outlined"
                     keyboardType="numeric"
                     value={value}
@@ -197,11 +199,11 @@ const LoginScreen: React.FC = () => {
                 )}
               />
               {errors.mobileNumber && (
-                <Text style={styles.error}>Enter a valid 10-digit mobile number</Text>
+                <Text style={styles.error}>{t("login.invalidPhone")}</Text>
               )}
 
               <Button
-                title="Send OTP"
+                title={t("login.requestOTP")}
                 onPress={handleSubmit(sendOtp)}
                 loading={loading}
                 disabled={loading}
@@ -212,14 +214,14 @@ const LoginScreen: React.FC = () => {
           ) : (
             <>
               <View style={styles.otpHeader}>
-                <Text style={styles.otpTitle}>OTP Verification</Text>
+                <Text style={styles.otpTitle}>{t("login.verifyOTP")}</Text>
                 <Text style={styles.otpSubtitle}>
-                  We sent a code to +91 {mobileNumber}
+                  {t("login.enterOTP")} +91 {mobileNumber}
                 </Text>
               </View>
 
               <TextInput
-                label="Enter OTP"
+                label={t("login.enterOTP")}
                 mode="outlined"
                 keyboardType="numeric"
                 value={otp}
@@ -234,7 +236,7 @@ const LoginScreen: React.FC = () => {
               />
 
               <Button
-                title="Verify OTP"
+                title={t("login.verifyOTP")}
                 onPress={verifyOtp}
                 loading={loading}
                 disabled={loading || otp.length !== 6}
@@ -244,14 +246,14 @@ const LoginScreen: React.FC = () => {
 
               <View style={styles.resendContainer}>
                 <Button
-                  title={timer > 0 ? `Resend OTP (${timer}s)` : "Resend OTP"}
+                  title={timer > 0 ? `${t("login.resendOTP")} (${timer}s)` : t("login.resendOTP")}
                   onPress={resendOtp}
                   variant="ghost"
                   size="small"
                   disabled={timer > 0 || loading}
                 />
                 <Button
-                  title="Change Number"
+                  title={t("common.cancel")}
                   onPress={() => {
                     setOtpSent(false);
                     setOtp("");

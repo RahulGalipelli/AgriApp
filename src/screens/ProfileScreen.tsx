@@ -5,6 +5,8 @@ import { colors, typography, spacing, shadows } from "../theme";
 import { Header } from "../components/Header";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
+import { useI18n } from "../i18n";
+import { updateUser } from "../api/user";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -16,15 +18,21 @@ const LANGUAGES = [
 ];
 
 export default function ProfileScreen() {
+  const { t, language, setLanguage } = useI18n();
   const [region, setRegion] = useState("");
   const [pincode, setPincode] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "hi" | "ta" | "te" | "kn" | "ml">(language);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [feedback, setFeedback] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  useEffect(() => {
+    setSelectedLanguage(language);
+  }, [language]);
 
   const loadSettings = async () => {
     const savedRegion = await AsyncStorage.getItem("region");
@@ -34,47 +42,77 @@ export default function ProfileScreen() {
     
     if (savedRegion) setRegion(savedRegion);
     if (savedPincode) setPincode(savedPincode);
-    if (savedLanguage) setSelectedLanguage(savedLanguage);
+    if (savedLanguage && ["en", "hi", "ta", "te", "kn", "ml"].includes(savedLanguage)) {
+      setSelectedLanguage(savedLanguage as any);
+    }
     if (savedAudio !== null) setAudioEnabled(savedAudio === "true");
   };
 
+  const handleLanguageChange = async (langCode: "en" | "hi" | "ta" | "te" | "kn" | "ml") => {
+    setSelectedLanguage(langCode);
+    // Update i18n immediately for instant UI update
+    await setLanguage(langCode);
+    // Update backend
+    try {
+      await updateUser({ language: langCode });
+    } catch (error) {
+      console.error("Failed to update language in backend:", error);
+      // Don't show error to user as local storage is already updated
+    }
+  };
+
   const saveSettings = async () => {
-    await AsyncStorage.setItem("region", region);
-    await AsyncStorage.setItem("pincode", pincode);
-    await AsyncStorage.setItem("language", selectedLanguage);
-    await AsyncStorage.setItem("audioEnabled", JSON.stringify(audioEnabled));
-    Alert.alert("Success", "Settings saved successfully");
+    setSaving(true);
+    try {
+      // Save to local storage
+      await AsyncStorage.setItem("region", region);
+      await AsyncStorage.setItem("pincode", pincode);
+      await AsyncStorage.setItem("language", selectedLanguage);
+      await AsyncStorage.setItem("audioEnabled", JSON.stringify(audioEnabled));
+      
+      // Update backend (only language and name are stored in backend)
+      await updateUser({
+        language: selectedLanguage,
+      });
+      
+      Alert.alert(t("common.success"), t("profile.settingsSaved"));
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      Alert.alert(t("common.error"), error instanceof Error ? error.message : t("common.error"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const submitFeedback = () => {
     if (!feedback.trim()) {
-      Alert.alert("Error", "Please enter your feedback");
+      Alert.alert(t("common.error"), t("profile.enterFeedback"));
       return;
     }
     // In a real app, this would send feedback to backend
-    Alert.alert("Thank You", "Your feedback has been submitted");
+    Alert.alert(t("profile.thankYou"), t("profile.feedbackSubmitted"));
     setFeedback("");
   };
 
   return (
     <View style={styles.container}>
-      <Header title="Profile & Settings" />
+      <Header title={t("profile.title")} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <Card variant="elevated" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>📍 Location</Text>
+          <Text style={styles.sectionTitle}>{t("profile.location")}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Region/State"
+            placeholder={t("profile.region")}
             value={region}
             onChangeText={setRegion}
             placeholderTextColor={colors.textSecondary}
           />
           <TextInput
             style={styles.input}
-            placeholder="Pincode"
+            placeholder={t("profile.pincode")}
             value={pincode}
             onChangeText={setPincode}
             keyboardType="numeric"
@@ -84,7 +122,7 @@ export default function ProfileScreen() {
         </Card>
 
         <Card variant="elevated" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🌐 Language</Text>
+          <Text style={styles.sectionTitle}>{t("profile.language")}</Text>
           <View style={styles.languageGrid}>
             {LANGUAGES.map((lang) => (
               <TouchableOpacity
@@ -93,7 +131,7 @@ export default function ProfileScreen() {
                   styles.languageButton,
                   selectedLanguage === lang.code && styles.languageButtonSelected,
                 ]}
-                onPress={() => setSelectedLanguage(lang.code)}
+                onPress={() => handleLanguageChange(lang.code as any)}
                 activeOpacity={0.7}
               >
                 <Text
@@ -110,9 +148,9 @@ export default function ProfileScreen() {
         </Card>
 
         <Card variant="elevated" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🔊 Audio Settings</Text>
+          <Text style={styles.sectionTitle}>{t("profile.audioSettings")}</Text>
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Enable Audio Instructions</Text>
+            <Text style={styles.switchLabel}>{t("profile.enableAudioInstructions")}</Text>
             <Switch
               value={audioEnabled}
               onValueChange={setAudioEnabled}
@@ -123,10 +161,10 @@ export default function ProfileScreen() {
         </Card>
 
         <Card variant="elevated" style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>💬 Help & Feedback</Text>
+          <Text style={styles.sectionTitle}>{t("profile.helpFeedback")}</Text>
           <TextInput
             style={[styles.input, styles.feedbackInput]}
-            placeholder="Share your feedback or report an issue..."
+            placeholder={t("profile.feedbackPlaceholder")}
             value={feedback}
             onChangeText={setFeedback}
             multiline
@@ -134,7 +172,7 @@ export default function ProfileScreen() {
             placeholderTextColor={colors.textSecondary}
           />
           <Button
-            title="Submit Feedback"
+            title={t("profile.submitFeedback")}
             onPress={submitFeedback}
             variant="outline"
             fullWidth
@@ -143,10 +181,12 @@ export default function ProfileScreen() {
         </Card>
 
         <Button
-          title="Save Settings"
+          title={t("common.save")}
           onPress={saveSettings}
           fullWidth
           style={styles.saveButton}
+          loading={saving}
+          disabled={saving}
         />
       </ScrollView>
     </View>

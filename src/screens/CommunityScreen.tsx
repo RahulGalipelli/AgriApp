@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity, FlatList } from "react-native";
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from "react-native";
 import { colors, typography, spacing, shadows } from "../theme";
 import { Header } from "../components/Header";
 import { Card } from "../components/Card";
@@ -90,11 +90,9 @@ export default function CommunityScreen() {
             <Text style={styles.emptyText}>No {selectedTab} available yet</Text>
           </Card>
         ) : (
-          <FlatList
-            data={filteredContent}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Card variant="elevated" style={styles.contentCard}>
+          <>
+            {filteredContent.map((item) => (
+              <Card key={item.id} variant="elevated" style={styles.contentCard}>
                 <Text style={styles.contentTitle}>{item.title}</Text>
                 <Text style={styles.contentDescription}>{item.description}</Text>
                 <Button
@@ -107,9 +105,8 @@ export default function CommunityScreen() {
                   style={styles.viewButton}
                 />
               </Card>
-            )}
-            scrollEnabled={false}
-          />
+            ))}
+          </>
         )}
       </ScrollView>
     </View>

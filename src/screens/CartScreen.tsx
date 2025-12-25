@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { View, StyleSheet, Text, FlatList, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Text, FlatList, ScrollView, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
 import { useAppStore } from "../state/store";
@@ -7,23 +7,56 @@ import { colors, typography, spacing, shadows } from "../theme";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useI18n } from "../i18n";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Cart">;
 
 export default function CartScreen({ navigation }: Props) {
   const { cart, getProductById, setCartQuantity, removeFromCart, cartItemCount, cartTotal, clearCart, loading, error, refreshCart } = useAppStore();
+  const [isClearing, setIsClearing] = useState(false);
+  const { t } = useI18n();
 
+  // Initial load on mount only
   useEffect(() => {
-    refreshCart();
+    refreshCart().catch(console.error);
   }, []);
+
+  const handleClearCart = () => {
+    if (isClearing || loading.cart) return;
+    
+    Alert.alert(
+      t("cart.clearCart"),
+      t("cart.clearCartConfirm"),
+      [
+        {
+          text: t("common.cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("cart.clearCart"),
+          style: "destructive",
+          onPress: async () => {
+            setIsClearing(true);
+            try {
+              await clearCart();
+            } catch (error) {
+              Alert.alert(t("common.error"), t("cart.clearCartError"));
+            } finally {
+              setIsClearing(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
       <Header 
-        title="Shopping Cart"
+        title={t("cart.title")}
         rightComponent={
           <Text style={styles.itemCount}>
-            {cartItemCount} {cartItemCount === 1 ? "item" : "items"}
+            {cartItemCount} {cartItemCount === 1 ? t("cart.item") : t("cart.items")}
           </Text>
         }
       />
@@ -31,14 +64,14 @@ export default function CartScreen({ navigation }: Props) {
       {loading.cart ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading cart...</Text>
+          <Text style={styles.loadingText}>{t("cart.loading")}</Text>
         </View>
       ) : error.cart ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorText}>{error.cart}</Text>
           <Button
-            title="Retry"
+            title={t("common.retry")}
             onPress={refreshCart}
             style={styles.retryButton}
           />
@@ -46,13 +79,8 @@ export default function CartScreen({ navigation }: Props) {
       ) : cart.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyEmoji}>🛒</Text>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptyText}>Add products to get started</Text>
-          <Button
-            title="Browse Products"
-            onPress={() => navigation.navigate("Products")}
-            style={styles.emptyButton}
-          />
+          <Text style={styles.emptyTitle}>{t("cart.empty")}</Text>
+          <Text style={styles.emptyText}>{t("cart.addProductsToGetStarted")}</Text>
         </View>
       ) : (
         <>
@@ -61,18 +89,21 @@ export default function CartScreen({ navigation }: Props) {
             keyExtractor={(item) => item.productId}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={!isClearing && !loading.cart}
             refreshControl={
               <RefreshControl
-                refreshing={loading.cart}
+                refreshing={loading.cart && !isClearing}
                 onRefresh={refreshCart}
                 colors={[colors.primary]}
+                enabled={!isClearing}
               />
             }
             renderItem={({ item }) => {
               const product = getProductById(item.productId);
               if (!product) return null;
+              const isDisabled = isClearing || loading.cart;
               return (
-                <Card variant="elevated" style={styles.cartItem}>
+                <Card variant="elevated" style={[styles.cartItem, isDisabled && styles.disabledItem]}>
                   <View style={styles.itemContent}>
                     <View style={styles.itemImage}>
                       <Text style={styles.itemEmoji}>🌿</Text>
@@ -86,27 +117,30 @@ export default function CartScreen({ navigation }: Props) {
                     <View style={styles.quantityControls}>
                       <Button
                         title="-"
-                        onPress={() => setCartQuantity(item.productId, item.quantity - 1).catch(console.error)}
+                        onPress={() => !isDisabled && setCartQuantity(item.productId, item.quantity - 1).catch(console.error)}
                         size="small"
                         variant="outline"
                         style={styles.qtyButton}
+                        disabled={isDisabled}
                       />
                       <Text style={styles.quantity}>{item.quantity}</Text>
                       <Button
                         title="+"
-                        onPress={() => setCartQuantity(item.productId, item.quantity + 1).catch(console.error)}
+                        onPress={() => !isDisabled && setCartQuantity(item.productId, item.quantity + 1).catch(console.error)}
                         size="small"
                         variant="outline"
                         style={styles.qtyButton}
+                        disabled={isDisabled}
                       />
                     </View>
                     <Button
-                      title="Remove"
-                      onPress={() => removeFromCart(item.productId).catch(console.error)}
+                      title={t("cart.remove")}
+                      onPress={() => !isDisabled && removeFromCart(item.productId).catch(console.error)}
                       size="small"
                       variant="ghost"
                       style={[styles.removeButton]}
                       textStyle={{ color: colors.error }}
+                      disabled={isDisabled}
                     />
                   </View>
                 </Card>
@@ -116,26 +150,37 @@ export default function CartScreen({ navigation }: Props) {
 
           <Card variant="elevated" style={styles.summaryCard}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Items</Text>
+              <Text style={styles.summaryLabel}>{t("cart.itemsLabel")}</Text>
               <Text style={styles.summaryValue}>{cartItemCount}</Text>
             </View>
             <View style={[styles.summaryRow, styles.summaryTotal]}>
-              <Text style={styles.summaryTotalLabel}>Total</Text>
+              <Text style={styles.summaryTotalLabel}>{t("cart.total")}</Text>
               <Text style={styles.summaryTotalValue}>₹{cartTotal}</Text>
             </View>
           <Button
-            title="Proceed to Checkout"
-            onPress={() => navigation.navigate("Checkout")}
+            title={t("cart.proceedToCheckout")}
+            onPress={() => !isClearing && !loading.cart && navigation.navigate("Checkout")}
             fullWidth
             style={styles.checkoutButton}
+            disabled={isClearing || loading.cart}
           />
-          <Button
-            title="Clear Cart"
-            onPress={() => clearCart().catch(console.error)}
-            variant="ghost"
-            size="small"
-            style={styles.clearButton}
-          />
+          <View style={styles.clearButtonContainer}>
+            <Button
+              title={t("cart.clearCart")}
+              onPress={handleClearCart}
+              variant="ghost"
+              size="small"
+              style={styles.clearButton}
+              disabled={isClearing || loading.cart}
+            />
+            {isClearing && (
+              <ActivityIndicator
+                size="small"
+                color={colors.primary}
+                style={styles.clearLoading}
+              />
+            )}
+          </View>
           </Card>
         </>
       )}
@@ -304,7 +349,19 @@ const styles = StyleSheet.create({
   checkoutButton: {
     marginTop: spacing.lg,
   },
-  clearButton: {
+  clearButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: spacing.sm,
+  },
+  clearButton: {
+    marginRight: spacing.xs,
+  },
+  clearLoading: {
+    marginLeft: spacing.xs,
+  },
+  disabledItem: {
+    opacity: 0.5,
   },
 });

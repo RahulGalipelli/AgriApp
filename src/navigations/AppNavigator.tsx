@@ -1,6 +1,7 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { I18nProvider } from "../i18n";
 import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LanguageScreen from "../screens/LanguageScreen";
@@ -24,7 +25,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const App = () => {
   return (
-    <NavigationContainer>
+    <I18nProvider>
+      <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -100,6 +102,7 @@ const App = () => {
         />
       </Stack.Navigator>
     </NavigationContainer>
+    </I18nProvider>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Text, FlatList, ScrollView, TouchableOpacity, Linking, Alert } from "react-native";
+import { View, StyleSheet, Text, ScrollView, TouchableOpacity, Linking, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
 import { Audio } from "expo-av";
@@ -154,72 +154,70 @@ export default function RecommendationsScreen({ navigation, route }: Props) {
           </TouchableOpacity>
         </View>
 
-      <FlatList
-        data={steps}
-        keyExtractor={(item, idx) => `${idx}-${item}`}
-        renderItem={({ item }) => <Text style={styles.bullet}>• {item}</Text>}
-        contentContainerStyle={styles.list}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            {organic ? (
-              <>
-                <Text style={styles.sectionTitle}>Organic treatment</Text>
-                <Text style={styles.paragraph}>{organic}</Text>
-              </>
-            ) : null}
-            {chemical ? (
-              <>
-                <Text style={styles.sectionTitle}>Chemical treatment</Text>
-                <Text style={styles.paragraph}>{chemical}</Text>
-              </>
-            ) : null}
-            {prevention ? (
-              <>
-                <Text style={styles.sectionTitle}>Prevention</Text>
-                <Text style={styles.paragraph}>{prevention}</Text>
-              </>
-            ) : null}
+        <View style={styles.list}>
+          {steps.map((item, idx) => (
+            <Text key={`${idx}-${item}`} style={styles.bullet}>• {item}</Text>
+          ))}
+        </View>
 
-            <Text style={styles.sectionTitle}>Recommended products</Text>
-            {recommended.length === 0 ? (
-              <Card variant="outlined" style={styles.emptyProductCard}>
-                <Text style={styles.emptyProductText}>No products available at the moment</Text>
-              </Card>
-            ) : (
-              recommended.map((p) => (
-                <View key={p.id} style={styles.productRow}>
-                  <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{p.name}</Text>
-                    <Text style={styles.productMeta}>
-                      ₹{p.price}
-                      {p.unit ? ` • ${p.unit}` : ""}
-                    </Text>
-                  </View>
-                  <Button
-                    title="Add"
-                    onPress={() => addToCart(p.id, 1).catch(console.error)}
-                    size="small"
-                    style={styles.addButton}
-                  />
+        <View style={styles.footer}>
+          {organic ? (
+            <>
+              <Text style={styles.sectionTitle}>Organic treatment</Text>
+              <Text style={styles.paragraph}>{organic}</Text>
+            </>
+          ) : null}
+          {chemical ? (
+            <>
+              <Text style={styles.sectionTitle}>Chemical treatment</Text>
+              <Text style={styles.paragraph}>{chemical}</Text>
+            </>
+          ) : null}
+          {prevention ? (
+            <>
+              <Text style={styles.sectionTitle}>Prevention</Text>
+              <Text style={styles.paragraph}>{prevention}</Text>
+            </>
+          ) : null}
+
+          <Text style={styles.sectionTitle}>Recommended products</Text>
+          {recommended.length === 0 ? (
+            <Card variant="outlined" style={styles.emptyProductCard}>
+              <Text style={styles.emptyProductText}>No products available at the moment</Text>
+            </Card>
+          ) : (
+            recommended.map((p) => (
+              <View key={p.id} style={styles.productRow}>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{p.name}</Text>
+                  <Text style={styles.productMeta}>
+                    ₹{p.price}
+                    {p.unit ? ` • ${p.unit}` : ""}
+                  </Text>
                 </View>
-              ))
-            )}
+                <Button
+                  title="Add"
+                  onPress={() => addToCart(p.id, 1).catch(console.error)}
+                  size="small"
+                  style={styles.addButton}
+                />
+              </View>
+            ))
+          )}
 
-            <Button
-              title="Browse Products"
-              onPress={() => navigation.navigate("Products")}
-              fullWidth
-              style={styles.button}
-            />
-            <Button
-              title={`Go to Cart (${cartItemCount})`}
-              onPress={() => navigation.navigate("Cart")}
-              variant="outline"
-              style={styles.cartButton}
-            />
-          </View>
-        }
-      />
+          <Button
+            title="Browse Products"
+            onPress={() => navigation.navigate("Products")}
+            fullWidth
+            style={styles.button}
+          />
+          <Button
+            title={`Go to Cart (${cartItemCount})`}
+            onPress={() => navigation.navigate("Cart")}
+            variant="outline"
+            style={styles.cartButton}
+          />
+        </View>
       </ScrollView>
     </View>
   );

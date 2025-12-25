@@ -8,10 +8,12 @@ import { colors, typography, spacing, shadows } from "../theme";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { Header } from "../components/Header";
+import { useI18n } from "../i18n";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ScanPlant">;
 
 export default function ScanPlantScreen({ navigation }: Props) {
+  const { t } = useI18n();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
@@ -48,7 +50,7 @@ export default function ScanPlantScreen({ navigation }: Props) {
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 1,
         aspect: [4, 3],
@@ -69,7 +71,7 @@ export default function ScanPlantScreen({ navigation }: Props) {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 1
       });
@@ -88,21 +90,21 @@ export default function ScanPlantScreen({ navigation }: Props) {
 
   const showImageSourceOptions = () => {
     Alert.alert(
-      "Select Image Source",
-      "Choose how you want to add a plant photo",
+      t("scanPlant.selectPlantImage"),
+      t("scanPlant.selectPlantPhoto"),
       [
         {
-          text: "Take Photo",
+          text: t("scanPlant.takePhoto"),
           onPress: takePhoto,
           style: "default"
         },
         {
-          text: "Choose from Gallery",
+          text: t("scanPlant.chooseFromGallery"),
           onPress: pickImage,
           style: "default"
         },
         {
-          text: "Cancel",
+          text: t("common.cancel"),
           style: "cancel"
         }
       ]
@@ -111,31 +113,23 @@ export default function ScanPlantScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Header title="Scan Plant" />
+      <Header title={t("scanPlant.title")} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.emoji}>📸</Text>
-          <Text style={styles.title}>Scan Plant</Text>
-          <Text style={styles.subtitle}>
-            Upload a photo of your plant to detect diseases and get treatment recommendations
-          </Text>
-        </View>
-
         {imageUri ? (
           <Card variant="elevated" style={styles.imageCard}>
             <Image source={{ uri: imageUri }} style={styles.image} />
             <View style={styles.imageActions}>
               <Button
-                title="Change Image"
+                title={t("scanPlant.changeImage")}
                 onPress={showImageSourceOptions}
                 variant="outline"
                 style={styles.actionButton}
               />
               <Button
-                title="Analyze Image"
+                title={t("scanPlant.analyzeImage")}
                 onPress={() => navigation.navigate("Processing", { imageUri })}
                 style={styles.actionButton}
               />
@@ -143,23 +137,41 @@ export default function ScanPlantScreen({ navigation }: Props) {
           </Card>
         ) : (
           <>
-            <Card variant="elevated" style={styles.uploadCard}>
-              <Text style={styles.uploadEmoji}>📸</Text>
-              <Text style={styles.uploadText}>Scan Your Plant</Text>
-              <Text style={styles.uploadHint}>
-                Take a photo or select from gallery to detect plant diseases
-              </Text>
+            <Card variant="elevated" style={styles.tipsCard}>
+              <Text style={styles.tipsTitle}>📋 {t("scanPlant.tipsTitle")}</Text>
+              <View style={styles.tipsList}>
+                <View style={styles.tipItem}>
+                  <Text style={styles.tipBullet}>•</Text>
+                  <Text style={styles.tipText}>{t("scanPlant.tip1")}</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <Text style={styles.tipBullet}>•</Text>
+                  <Text style={styles.tipText}>{t("scanPlant.tip2")}</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <Text style={styles.tipBullet}>•</Text>
+                  <Text style={styles.tipText}>{t("scanPlant.tip3")}</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <Text style={styles.tipBullet}>•</Text>
+                  <Text style={styles.tipText}>{t("scanPlant.tip4")}</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <Text style={styles.tipBullet}>•</Text>
+                  <Text style={styles.tipText}>{t("scanPlant.tip5")}</Text>
+                </View>
+              </View>
             </Card>
 
             <View style={styles.buttonContainer}>
               <Button
-                title="📷 Take Photo"
+                title={`📷 ${t("scanPlant.takePhoto")}`}
                 onPress={takePhoto}
                 fullWidth
                 style={styles.primaryButton}
               />
               <Button
-                title="🖼️ Choose from Gallery"
+                title={`🖼️ ${t("scanPlant.chooseFromGallery")}`}
                 onPress={pickImage}
                 variant="outline"
                 fullWidth
@@ -182,26 +194,6 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingTop: spacing.lg,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: spacing.xxl,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: spacing.md,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: spacing.md,
-  },
   imageCard: {
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -222,28 +214,38 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
   },
-  uploadCard: {
-    padding: spacing.xxxl,
+  tipsCard: {
+    padding: spacing.lg,
     marginBottom: spacing.lg,
-    alignItems: "center",
-    minHeight: 300,
-    justifyContent: "center",
-    backgroundColor: colors.gray[50],
+    backgroundColor: colors.primaryLight + "10",
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
-  uploadEmoji: {
-    fontSize: 64,
-    marginBottom: spacing.md,
-  },
-  uploadText: {
+  tipsTitle: {
     ...typography.h3,
     color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  tipsList: {
+    gap: spacing.sm,
+  },
+  tipItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginBottom: spacing.xs,
   },
-  uploadHint: {
-    ...typography.bodySmall,
+  tipBullet: {
+    ...typography.body,
+    color: colors.primary,
+    marginRight: spacing.sm,
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  tipText: {
+    ...typography.body,
     color: colors.textSecondary,
-    textAlign: "center",
-    paddingHorizontal: spacing.md,
+    flex: 1,
+    lineHeight: 22,
   },
   buttonContainer: {
     gap: spacing.md,

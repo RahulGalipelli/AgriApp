@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
@@ -7,11 +7,13 @@ import { colors, typography, spacing, shadows } from "../theme";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { Header } from "../components/Header";
+import { useI18n } from "../i18n";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Products">;
 
 export default function ProductsScreen({ navigation }: Props) {
   const { products, addToCart, cartItemCount, loading, error, refreshProducts } = useAppStore();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (products.length === 0 && !loading.products) {
@@ -19,10 +21,29 @@ export default function ProductsScreen({ navigation }: Props) {
     }
   }, []);
 
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+
+  const handleAddToCart = async (productId: string) => {
+    // Prevent multiple clicks
+    if (addingProductId === productId) return;
+    
+    setAddingProductId(productId);
+    try {
+      await addToCart(productId, 1);
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+    } finally {
+      // Reset after a short delay to show feedback
+      setTimeout(() => {
+        setAddingProductId(null);
+      }, 500);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Header 
-        title="Products" 
+        title={t("products.title")} 
         rightComponent={
           <TouchableOpacity
             style={styles.cartBadge}
@@ -38,23 +59,18 @@ export default function ProductsScreen({ navigation }: Props) {
           </TouchableOpacity>
         }
       />
-      
-      {/* Subtitle */}
-      <View style={styles.subtitleContainer}>
-        <Text style={styles.subtitle}>Browse treatment products</Text>
-      </View>
 
       {loading.products ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <Text style={styles.loadingText}>{t("products.loading")}</Text>
         </View>
       ) : error.products ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorEmoji}>⚠️</Text>
           <Text style={styles.errorText}>{error.products}</Text>
           <Button
-            title="Retry"
+            title={t("common.retry")}
             onPress={refreshProducts}
             style={styles.retryButton}
           />
@@ -86,10 +102,12 @@ export default function ProductsScreen({ navigation }: Props) {
                   )}
                 </View>
                 <Button
-                  title="Add"
-                  onPress={() => addToCart(item.id, 1).catch(console.error)}
+                  title={addingProductId === item.id ? t("products.added") : t("products.add")}
+                  onPress={() => handleAddToCart(item.id)}
                   size="small"
                   style={styles.addButton}
+                  disabled={addingProductId === item.id}
+                  loading={addingProductId === item.id && loading.cart}
                 />
               </View>
             </Card>
@@ -97,12 +115,13 @@ export default function ProductsScreen({ navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>📦</Text>
-              <Text style={styles.emptyText}>No products available</Text>
-              <Text style={styles.emptySubtext}>Check back later for new products</Text>
+              <Text style={styles.emptyText}>{t("products.noProducts")}</Text>
+              <Text style={styles.emptySubtext}>{t("products.checkBackLater")}</Text>
             </View>
           }
         />
       )}
+
     </View>
   );
 }
@@ -111,14 +130,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  subtitleContainer: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
   },
   cartBadge: {
     width: 48,
