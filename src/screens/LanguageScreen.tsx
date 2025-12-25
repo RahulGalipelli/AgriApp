@@ -10,62 +10,63 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import { Button } from "react-native-paper";
+import { colors, typography, spacing } from "../theme";
 
 
 
 const styles = StyleSheet.create({
     container: {
       flex: 1,
-      padding: 24,
-      backgroundColor: "#F5FFF7"
+      padding: spacing.xxl,
+      backgroundColor: colors.background
     },
     title: {
-      fontSize: 24,
-      fontWeight: "bold",
-      marginTop:30,
-      marginBottom: 20,
-      textAlign: "center"
+      ...typography.h1,
+      marginTop: 30,
+      marginBottom: spacing.xl,
+      textAlign: "center",
+      color: colors.textPrimary
     },
     langButton: {
-      padding: 14,
-      borderRadius: 10,
+      padding: spacing.md,
+      borderRadius: spacing.sm,
       borderWidth: 1,
-      borderColor: "#4CAF50",
-      marginBottom: 12
+      borderColor: colors.primaryLight,
+      marginBottom: spacing.md
     },
     selected: {
-      backgroundColor: "#4CAF50"
+      backgroundColor: colors.primaryLight
     },
     langText: {
-      fontSize: 18,
+      ...typography.bodyLarge,
       textAlign: "center",
-      color: "#000"
+      color: colors.textPrimary
     },
     audioRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginTop: 20
+      marginTop: spacing.xl
     },
     audioText: {
-      fontSize: 16
+      ...typography.body,
+      color: colors.textPrimary
     },
     continueButton: {
-      backgroundColor: "#2E7D32",
-      padding: 16,
-      borderRadius: 12,
+      backgroundColor: colors.primary,
+      padding: spacing.lg,
+      borderRadius: spacing.md,
       marginTop: 30
     },
     backButton: {
-        backgroundColor: "#2E7D32",
-        padding: 16,
-        borderRadius: 12,
+        backgroundColor: colors.primary,
+        padding: spacing.lg,
+        borderRadius: spacing.md,
         marginTop: 30
       },
     continueText: {
-      color: "#fff",
-      fontSize: 18,
-      fontWeight: "bold",
+      ...typography.button,
+      color: colors.textOnPrimary,
       textAlign: "center"
     }
   });
@@ -93,7 +94,7 @@ export default function LanguageScreen({ navigation }: any) {
     if (!audioEnabled) return;
 
     const { sound } = await Audio.Sound.createAsync(
-      require(`../assets/audio/welcome-en.mp3`)
+      require("../assets/audio/welcome-en.mp3")
     );
     await sound.playAsync();
     sound.setOnPlaybackStatusUpdate(status => {

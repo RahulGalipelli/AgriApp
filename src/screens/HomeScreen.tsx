@@ -1,40 +1,104 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
+import { colors, typography, spacing, shadows } from "../theme";
+import { FeatureCard } from "../components/FeatureCard";
+import { Card } from "../components/Card";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
-
-
 const HomeScreen = ({ navigation }: Props) => {
+  const features = [
+    {
+      icon: "🌱",
+      title: "Scan Plant",
+      subtitle: "Upload photo to detect diseases",
+      onPress: () => navigation.navigate("ScanPlant"),
+      gradient: true,
+    },
+    {
+      icon: "🛒",
+      title: "Shop Products",
+      subtitle: "Browse treatment products",
+      onPress: () => navigation.navigate("Products"),
+    },
+    {
+      icon: "📦",
+      title: "My Orders",
+      subtitle: "Track your orders",
+      onPress: () => navigation.navigate("Orders"),
+    },
+    {
+      icon: "💬",
+      title: "Support",
+      subtitle: "Call or video chat with experts",
+      onPress: () => navigation.navigate("Support"),
+    },
+    {
+      icon: "👥",
+      title: "Community",
+      subtitle: "Tips and discussions",
+      onPress: () => navigation.navigate("Community"),
+    },
+    {
+      icon: "⚙️",
+      title: "Profile",
+      subtitle: "Settings and preferences",
+      onPress: () => navigation.navigate("Profile"),
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={styles.logout_button}>Logout</Text>
-      </TouchableOpacity>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Welcome back!</Text>
+          <Text style={styles.title}>AgriCure</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => navigation.navigate("Login")}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.title}>AgriCure</Text>
-      <Text style={styles.subtitle}>Choose an option</Text>
+      {/* Hero Section */}
+      <Card variant="elevated" style={styles.heroCard}>
+        <View style={styles.heroContent}>
+          <Text style={styles.heroEmoji}>🌾</Text>
+          <View style={styles.heroText}>
+            <Text style={styles.heroTitle}>Plant Health Detection</Text>
+            <Text style={styles.heroSubtitle}>
+              Get instant diagnosis and treatment recommendations
+            </Text>
+          </View>
+        </View>
+      </Card>
 
-      <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate("ScanPlant")} activeOpacity={0.85}>
-        <Text style={styles.primaryButtonText}>Upload Photo (Scan Plant)</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Products")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Shop Products</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Orders")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>My Orders & Tracking</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Support")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Call / Video Support</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Community")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Community / Tips</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("Profile")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Profile / Settings</Text>
-      </TouchableOpacity>
+      {/* Features Grid */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        {features.map((feature, index) => (
+          <FeatureCard
+            key={index}
+            icon={<Text style={styles.iconEmoji}>{feature.icon}</Text>}
+            title={feature.title}
+            subtitle={feature.subtitle}
+            onPress={feature.onPress}
+            gradient={feature.gradient}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 };
@@ -42,12 +106,82 @@ const HomeScreen = ({ navigation }: Props) => {
 export default HomeScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20, justifyContent: "center" },
-  title: { fontSize: 28, fontWeight: "800", textAlign: "center" },
-  subtitle: { marginTop: 8, marginBottom: 22, fontSize: 16, textAlign: "center", color: "#2B2B2B" },
-  primaryButton: { backgroundColor: "#2E7D32", padding: 14, borderRadius: 12, marginBottom: 12, alignItems: "center" },
-  primaryButtonText: { color: "#fff", fontWeight: "800" },
-  button: { backgroundColor: "#1565C0", padding: 14, borderRadius: 12, marginBottom: 12, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "800" },
-  logout_button:{color: "#1565C0", marginBottom: 100}
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingTop: 60,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
+  },
+  greeting: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  title: {
+    ...typography.h1,
+    color: colors.textPrimary,
+    fontSize: 32,
+    fontWeight: "900",
+  },
+  logoutButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: 20,
+    backgroundColor: colors.secondaryBackground,
+  },
+  logoutText: {
+    ...typography.buttonSmall,
+    color: colors.secondary,
+  },
+  heroCard: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    padding: spacing.xl,
+    backgroundColor: colors.primary,
+    ...shadows.large,
+  },
+  heroContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  heroEmoji: {
+    fontSize: 48,
+    marginRight: spacing.md,
+  },
+  heroText: {
+    flex: 1,
+  },
+  heroTitle: {
+    ...typography.h2,
+    color: colors.textOnPrimary,
+    marginBottom: spacing.xs,
+  },
+  heroSubtitle: {
+    ...typography.body,
+    color: colors.textOnPrimary,
+    opacity: 0.9,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  },
+  sectionTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+  },
+  iconEmoji: {
+    fontSize: 24,
+  },
 });

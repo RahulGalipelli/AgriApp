@@ -126,5 +126,9 @@ export async function analyzePlantImage(imageUri: string): Promise<PlantAnalysis
   }
 
   const data = (await response.json()) as unknown;
+  // Backend returns {scan_id, result}, extract result
+  if (data && typeof data === "object" && "result" in data) {
+    return normalizePlantAnalysis((data as any).result);
+  }
   return normalizePlantAnalysis(data);
 }

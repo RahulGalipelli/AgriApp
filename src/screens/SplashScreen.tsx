@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, Image, StyleSheet, Animated } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colors } from "../theme";
 
 export default function SplashScreen({ navigation }: any) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -48,7 +49,7 @@ export default function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FEFDF8",
+    backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
   },

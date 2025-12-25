@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { colors, typography, spacing } from "../theme";
 
 type RootStackParamList = {
   OTP: { mobileNumber: string };
@@ -61,8 +62,23 @@ export const OTPScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, alignSelf: "center" },
-  input: { marginBottom: 10 },
-  button: { marginTop: 20 }
+  container: { 
+    flex: 1, 
+    justifyContent: "center", 
+    padding: spacing.xl, 
+    backgroundColor: colors.background 
+  },
+  title: { 
+    ...typography.h1, 
+    marginBottom: spacing.xl, 
+    alignSelf: "center",
+    color: colors.textPrimary
+  },
+  input: { 
+    marginBottom: spacing.sm 
+  },
+  button: { 
+    marginTop: spacing.xl,
+    backgroundColor: colors.primary
+  }
 });

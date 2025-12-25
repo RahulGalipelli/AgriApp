@@ -1,7 +1,11 @@
 import React from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
+import { colors, typography, spacing } from "../theme";
+import { Header } from "../components/Header";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OrderConfirmation">;
 
@@ -10,24 +14,83 @@ export default function OrderConfirmationScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Order Confirmed</Text>
-      <Text style={styles.subtitle}>Order ID: {orderId}</Text>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.replace("Tracking", { orderId })} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Track Order</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.button, styles.secondary]} onPress={() => navigation.replace("Home")} activeOpacity={0.85}>
-        <Text style={styles.buttonText}>Back to Home</Text>
-      </TouchableOpacity>
+      <Header title="Order Confirmed" showBack={false} />
+      <View style={styles.content}>
+        <View style={styles.successContainer}>
+          <Text style={styles.successEmoji}>✅</Text>
+          <Text style={styles.title}>Order Placed Successfully!</Text>
+          <Card variant="elevated" style={styles.orderCard}>
+            <Text style={styles.label}>Order ID</Text>
+            <Text style={styles.orderId}>{orderId}</Text>
+          </Card>
+        </View>
+
+        <View style={styles.actions}>
+          <Button
+            title="Track Order"
+            onPress={() => navigation.replace("Tracking", { orderId })}
+            fullWidth
+            style={styles.button}
+          />
+          <Button
+            title="Back to Home"
+            onPress={() => navigation.replace("Home")}
+            variant="outline"
+            fullWidth
+            style={styles.secondaryButton}
+          />
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 22, fontWeight: "700", marginTop: 50 },
-  subtitle: { marginTop: 12, color: "#2B2B2B" },
-  button: { marginTop: 16, backgroundColor: "#2E7D32", paddingVertical: 12, paddingHorizontal: 18, borderRadius: 12 },
-  secondary: { backgroundColor: "#1565C0" },
-  buttonText: { color: "#fff", fontWeight: "700" }
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: spacing.xl,
+    justifyContent: "center",
+  },
+  successContainer: {
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+  },
+  successEmoji: {
+    fontSize: 80,
+    marginBottom: spacing.lg,
+  },
+  title: { 
+    ...typography.h1, 
+    color: colors.textPrimary,
+    textAlign: "center",
+    marginBottom: spacing.xl,
+  },
+  orderCard: {
+    padding: spacing.lg,
+    minWidth: "100%",
+  },
+  label: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  orderId: {
+    ...typography.h3,
+    color: colors.primary,
+    fontWeight: "700",
+  },
+  actions: {
+    width: "100%",
+  },
+  button: { 
+    marginBottom: spacing.md,
+  },
+  secondaryButton: {
+    marginTop: spacing.sm,
+  },
 });
 

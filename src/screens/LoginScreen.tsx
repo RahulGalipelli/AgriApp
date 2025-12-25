@@ -1,13 +1,22 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, StyleSheet, Alert, TextInput as RNTextInput, Platform } from "react-native";
-import { TextInput, Button, Text } from "react-native-paper";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  TextInput as RNTextInput,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  StatusBar,
+} from "react-native";
+import { TextInput, Text } from "react-native-paper";
 import { useForm, Controller } from "react-hook-form";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
-import { TouchableOpacity } from "react-native";
-
-import SmsRetriever from 'react-native-sms-retriever'; // Android auto-read
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colors, typography, spacing, shadows } from "../theme";
+import { Button } from "../components/Button";
+import { Card } from "../components/Card";
 
 type RootStackParamList = {
   Login: undefined;
@@ -24,13 +33,8 @@ type FormData = {
 };
 
 const API_BASE = "http://192.168.1.10:8002/auth";
+
 const LoginScreen: React.FC = () => {
-  const resetOnboarding = async () => {
-    await AsyncStorage.removeItem("onboardingDone");
-    await AsyncStorage.removeItem("language");
-    await AsyncStorage.removeItem("audioEnabled");
-    alert("Onboarding reset. Restart app.");
-  };
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     defaultValues: { mobileNumber: "" }
@@ -41,8 +45,7 @@ const LoginScreen: React.FC = () => {
   const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState(60);
   const otpInputRef = useRef<RNTextInput>(null);
-
-  const [mobileNumber, setMobileNumber] = useState(""); // store mobile for API calls
+  const [mobileNumber, setMobileNumber] = useState("");
 
   // Countdown timer
   useEffect(() => {
@@ -55,23 +58,6 @@ const LoginScreen: React.FC = () => {
     };
   }, [otpSent, timer]);
 
-  // Android SMS auto-read
-  useEffect(() => {
-    if (otpSent && Platform.OS === 'android') {
-      SmsRetriever.startSmsRetriever()
-        .then(() => {
-          SmsRetriever.addSmsListener(event => {
-            const message = event.message ?? "";
-            const code = message.match(/\d{6}/)?.[0]; // extract OTP
-            if (code) setOtp(code);
-            SmsRetriever.removeSmsListener();
-          });
-        })
-        .catch(console.log);
-    }
-  }, [otpSent]);
-
-  // Send OTP API placeholder
   const sendOtp = async (data: FormData) => {
     if (data.mobileNumber.length !== 10) {
       Alert.alert("Error", "Enter a valid 10-digit mobile number");
@@ -80,19 +66,16 @@ const LoginScreen: React.FC = () => {
     setMobileNumber(data.mobileNumber);
     setLoading(true);
     try {
-      // Replace with your backend API
       const response = await fetch(`${API_BASE}/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber: data.mobileNumber })
       });
       const result = await response.json();
-      console.log(result);
       if (result.success) {
         setOtpSent(true);
-        setTimer(6);
+        setTimer(60);
         otpInputRef.current?.focus();
-        Alert.alert("OTP Sent", `OTP sent to ${data.mobileNumber}`);
       } else {
         Alert.alert("Error", result.message || "Failed to send OTP");
       }
@@ -124,7 +107,6 @@ const LoginScreen: React.FC = () => {
         return;
       }
   
-      // ✅ STORE TOKENS
       await AsyncStorage.multiSet([
         ["accessToken", result.access_token],
         ["refreshToken", result.refresh_token],
@@ -139,7 +121,6 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   const resendOtp = async () => {
     setLoading(true);
@@ -156,7 +137,7 @@ const LoginScreen: React.FC = () => {
         setTimer(60);
         setOtp("");
         otpInputRef.current?.focus();
-        Alert.alert("OTP Sent", "OTP resent successfully");
+        Alert.alert("Success", "OTP resent successfully");
       } else {
         Alert.alert("Error", result.message || "Failed to resend OTP");
       }
@@ -166,110 +147,194 @@ const LoginScreen: React.FC = () => {
       setLoading(false);
     }
   };
-  
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={resetOnboarding}>
-  <Text>Reset Language Selection</Text>
-</TouchableOpacity>
-      <Text style={styles.title}>Login</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.emoji}>🌾</Text>
+          <Text style={styles.title}>Welcome to AgriCure</Text>
+          <Text style={styles.subtitle}>
+            {otpSent ? "Enter the OTP sent to your mobile" : "Enter your mobile number to continue"}
+          </Text>
+        </View>
 
-      <Controller
-        control={control}
-        name="mobileNumber"
-        rules={{
-          required: true,
-          pattern: /^[0-9]{10}$/
-        }}
-        render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput
-            label="Mobile Number"
-            mode="outlined"
-            keyboardType="numeric"
-            value={value}
-            onChangeText={(text) => {
-              onChange(text);
-            }}
-            onBlur={onBlur}
-            style={styles.input}
-            error={!!errors.mobileNumber}
-            maxLength={10}
-            disabled={otpSent}
-          />
-        )}
-      />
-      {errors.mobileNumber && (
-        <Text style={styles.error}>Enter a valid 10-digit mobile number</Text>
-      )}
+        {/* Form Card */}
+        <Card variant="elevated" style={styles.formCard}>
+          {!otpSent ? (
+            <>
+              <Controller
+                control={control}
+                name="mobileNumber"
+                rules={{
+                  required: true,
+                  pattern: /^[0-9]{10}$/
+                }}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    label="Mobile Number"
+                    mode="outlined"
+                    keyboardType="numeric"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    style={styles.input}
+                    error={!!errors.mobileNumber}
+                    maxLength={10}
+                    left={<TextInput.Icon icon="phone" />}
+                    outlineColor={colors.border}
+                    activeOutlineColor={colors.primary}
+                  />
+                )}
+              />
+              {errors.mobileNumber && (
+                <Text style={styles.error}>Enter a valid 10-digit mobile number</Text>
+              )}
 
-      {!otpSent ? (
-        <Button
-          mode="contained"
-          onPress={handleSubmit(sendOtp)}
-          style={styles.button}
-          loading={loading}
-          disabled={loading}
-        >
-          Send OTP
-        </Button>
-      ) : (
-        <>
-          <TextInput
-            label="Enter OTP"
-            mode="outlined"
-            keyboardType="numeric"
-            value={otp}
-            onChangeText={setOtp}
-            maxLength={6}
-            style={styles.input}
-            ref={otpInputRef}
-            textContentType="oneTimeCode" // iOS auto-fill
-          />
+              <Button
+                title="Send OTP"
+                onPress={handleSubmit(sendOtp)}
+                loading={loading}
+                disabled={loading}
+                fullWidth
+                style={styles.button}
+              />
+            </>
+          ) : (
+            <>
+              <View style={styles.otpHeader}>
+                <Text style={styles.otpTitle}>OTP Verification</Text>
+                <Text style={styles.otpSubtitle}>
+                  We sent a code to +91 {mobileNumber}
+                </Text>
+              </View>
 
-          <Button
-            mode="contained"
-            onPress={verifyOtp}
-            style={styles.button}
-            loading={loading}
-            disabled={loading}
-          >
-            Verify OTP
-          </Button>
+              <TextInput
+                label="Enter OTP"
+                mode="outlined"
+                keyboardType="numeric"
+                value={otp}
+                onChangeText={setOtp}
+                maxLength={6}
+                style={styles.input}
+                ref={otpInputRef}
+                textContentType="oneTimeCode"
+                left={<TextInput.Icon icon="lock" />}
+                outlineColor={colors.border}
+                activeOutlineColor={colors.primary}
+              />
 
-          <View style={styles.resendContainer}>
-            <Button
-              mode="text"
-              onPress={resendOtp}
-              disabled={timer > 0 || loading}
-            >
-              Resend OTP {timer > 0 ? `(${timer}s)` : ""}
-            </Button>
+              <Button
+                title="Verify OTP"
+                onPress={verifyOtp}
+                loading={loading}
+                disabled={loading || otp.length !== 6}
+                fullWidth
+                style={styles.button}
+              />
 
-            <Button
-              mode="text"
-              onPress={() => {
-                setOtpSent(false);
-                setOtp("");
-              }}
-              disabled={loading}
-            >
-              Change Mobile Number
-            </Button>
-          </View>
-        </>
-      )}
-    </View>
+              <View style={styles.resendContainer}>
+                <Button
+                  title={timer > 0 ? `Resend OTP (${timer}s)` : "Resend OTP"}
+                  onPress={resendOtp}
+                  variant="ghost"
+                  size="small"
+                  disabled={timer > 0 || loading}
+                />
+                <Button
+                  title="Change Number"
+                  onPress={() => {
+                    setOtpSent(false);
+                    setOtp("");
+                  }}
+                  variant="ghost"
+                  size="small"
+                  disabled={loading}
+                />
+              </View>
+            </>
+          )}
+        </Card>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 28, fontWeight: "bold", marginBottom: 20, alignSelf: "center" },
-  input: { marginBottom: 10 },
-  button: { marginTop: 20 },
-  error: { color: "red", marginBottom: 10 },
-  resendContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 }
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: spacing.xl,
+    justifyContent: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: spacing.xxl,
+  },
+  emoji: {
+    fontSize: 64,
+    marginBottom: spacing.md,
+  },
+  title: {
+    ...typography.h1,
+    color: colors.textPrimary,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: spacing.xl,
+  },
+  formCard: {
+    padding: spacing.xl,
+    ...shadows.large,
+  },
+  input: {
+    marginBottom: spacing.md,
+    backgroundColor: colors.backgroundLight,
+  },
+  error: {
+    ...typography.bodySmall,
+    color: colors.error,
+    marginBottom: spacing.md,
+    marginLeft: spacing.xs,
+  },
+  button: {
+    marginTop: spacing.md,
+  },
+  otpHeader: {
+    marginBottom: spacing.lg,
+    alignItems: "center",
+  },
+  otpTitle: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  otpSubtitle: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  resendContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: spacing.lg,
+  },
 });
