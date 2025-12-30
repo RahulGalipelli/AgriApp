@@ -20,7 +20,14 @@ const PROD_API_URL = "https://your-production-api.com";
 const __DEV__ = process.env.NODE_ENV !== "production";
 
 // Use development URL in dev mode, production URL otherwise
-export const API_BASE_URL = "https://unsatiated-carlita-overaffirmatively.ngrok-free.dev";
+// IMPORTANT: Update this with your actual Render backend URL
+// Get it from: Render Dashboard → Your Web Service → Settings → URL
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://agriapp-backend-88a1.onrender.com";
+
+// Debug: Log the API URL being used
+if (__DEV__) {
+  console.log("API Base URL:", API_BASE_URL);
+}
 
 // Helper to get current config (useful for debugging)
 export const getApiConfig = () => ({

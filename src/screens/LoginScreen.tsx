@@ -70,7 +70,9 @@ const LoginScreen: React.FC = () => {
       return;
     }
     setMobileNumber(data.mobileNumber);
-    
+    console.log(data.mobileNumber);
+    console.log(ADMIN_PHONE_NUMBERS.includes(data.mobileNumber));
+
     // Check if admin user - bypass OTP
     if (ADMIN_PHONE_NUMBERS.includes(data.mobileNumber)) {
       setLoading(true);
@@ -83,6 +85,7 @@ const LoginScreen: React.FC = () => {
         });
         
         const result = await response.json();
+        
         
         if (response.ok && result.access_token) {
           await AsyncStorage.multiSet([
@@ -112,12 +115,32 @@ const LoginScreen: React.FC = () => {
   const requestOtpForAdmin = async (mobile: string) => {
     setLoading(true);
     try {
+      console.log("Requesting OTP from:", `${API_BASE}/request-otp`);
       const response = await fetch(`${API_BASE}/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mobileNumber: mobile })
       });
+      
+      console.log("Response status:", response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        let errorMessage = t("common.error");
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          errorMessage = `Server error: ${response.status}`;
+        }
+        Alert.alert(t("common.error"), errorMessage);
+        return;
+      }
+      
       const result = await response.json();
+      console.log("OTP Response:", result);
+      
       if (result.success) {
         setOtpSent(true);
         setTimer(60);
@@ -126,7 +149,14 @@ const LoginScreen: React.FC = () => {
         Alert.alert(t("common.error"), result.message || t("login.invalidOTP"));
       }
     } catch (error) {
-      Alert.alert(t("common.error"), t("common.error"));
+      console.error("OTP Request Error:", error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Network error. Check if backend is running and URL is correct.";
+      Alert.alert(
+        t("common.error"), 
+        `${errorMessage}\n\nBackend URL: ${API_BASE_URL}`
+      );
     } finally {
       setLoading(false);
     }
