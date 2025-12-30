@@ -34,12 +34,23 @@ export async function getCart(): Promise<Cart> {
       if (response.status === 401) {
         throw new Error("Authentication required");
       }
-      throw new Error(`Failed to fetch cart: ${response.statusText}`);
+      const statusText = response.statusText || `HTTP ${response.status}`;
+      throw new Error(`Failed to fetch cart: ${statusText}`);
     }
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching cart:", error);
+    // Handle network errors silently (likely connectivity issues)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Network error: Unable to connect to server");
+    }
+    // Only log unexpected errors (not auth or network errors)
+    if (!(error instanceof Error && (
+      error.message.includes("Authentication") || 
+      error.message.includes("Network error")
+    ))) {
+      console.error("Error fetching cart:", error);
+    }
     throw error;
   }
 }
@@ -65,7 +76,10 @@ export async function addToCart(productId: string, quantity: number = 1): Promis
 
     return await response.json();
   } catch (error) {
-    console.error("Error adding to cart:", error);
+    // Only log unexpected errors
+    if (!(error instanceof Error && (error.message.includes("Authentication") || error.message.includes("not found")))) {
+      console.error("Error adding to cart:", error);
+    }
     throw error;
   }
 }
@@ -84,7 +98,10 @@ export async function updateCartItem(productId: string, quantity: number): Promi
 
     return await response.json();
   } catch (error) {
-    console.error("Error updating cart item:", error);
+    // Only log unexpected errors
+    if (!(error instanceof Error && error.message.includes("Authentication"))) {
+      console.error("Error updating cart item:", error);
+    }
     throw error;
   }
 }
@@ -103,7 +120,10 @@ export async function removeFromCart(productId: string): Promise<Cart> {
 
     return await response.json();
   } catch (error) {
-    console.error("Error removing from cart:", error);
+    // Only log unexpected errors
+    if (!(error instanceof Error && error.message.includes("Authentication"))) {
+      console.error("Error removing from cart:", error);
+    }
     throw error;
   }
 }
@@ -120,7 +140,10 @@ export async function clearCart(): Promise<void> {
       throw new Error(`Failed to clear cart: ${response.statusText}`);
     }
   } catch (error) {
-    console.error("Error clearing cart:", error);
+    // Only log unexpected errors
+    if (!(error instanceof Error && error.message.includes("Authentication"))) {
+      console.error("Error clearing cart:", error);
+    }
     throw error;
   }
 }

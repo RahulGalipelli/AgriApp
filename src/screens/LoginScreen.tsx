@@ -18,6 +18,7 @@ import { colors, typography, spacing, shadows } from "../theme";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
 import { useI18n } from "../i18n";
+import { API_BASE_URL } from "../config";
 
 type RootStackParamList = {
   Login: undefined;
@@ -33,7 +34,10 @@ type FormData = {
   mobileNumber: string;
 };
 
-const API_BASE = "http://192.168.1.10:8002/auth";
+const API_BASE = `${API_BASE_URL}/auth`;
+
+// Admin phone numbers that can bypass OTP (add your admin numbers here)
+const ADMIN_PHONE_NUMBERS = ["9999999999", "8888888888"]; // Replace with actual admin numbers
 
 const LoginScreen: React.FC = () => {
   const { t } = useI18n();
@@ -66,12 +70,52 @@ const LoginScreen: React.FC = () => {
       return;
     }
     setMobileNumber(data.mobileNumber);
+    
+    // Check if admin user - bypass OTP
+    if (ADMIN_PHONE_NUMBERS.includes(data.mobileNumber)) {
+      setLoading(true);
+      try {
+        // Direct login for admin (bypass OTP)
+        const response = await fetch(`${API_BASE}/admin-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobileNumber: data.mobileNumber })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.access_token) {
+          await AsyncStorage.multiSet([
+            ["accessToken", result.access_token],
+            ["refreshToken", result.refresh_token || ""],
+            ["user", JSON.stringify(result.user)],
+            ["isLoggedIn", "true"],
+          ]);
+          navigation.replace("Home");
+        } else {
+          // Fallback to regular OTP if admin login fails
+          await requestOtpForAdmin(data.mobileNumber);
+        }
+      } catch (error) {
+        // Fallback to regular OTP if admin login fails
+        await requestOtpForAdmin(data.mobileNumber);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Regular user flow - request OTP
+    await requestOtpForAdmin(data.mobileNumber);
+  };
+
+  const requestOtpForAdmin = async (mobile: string) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobileNumber: data.mobileNumber })
+        body: JSON.stringify({ mobileNumber: mobile })
       });
       const result = await response.json();
       if (result.success) {

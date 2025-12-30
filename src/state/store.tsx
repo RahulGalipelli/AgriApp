@@ -184,12 +184,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       dispatch({ type: "SET_PRODUCTS", products: mappedProducts });
     } catch (error) {
-      console.error("Failed to load products:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load products";
-      // If it's an auth error, silently set empty array
-      if (errorMessage.includes("Authentication") || errorMessage.includes("401")) {
+      // If it's an auth or network error, silently set empty array (don't log)
+      if (errorMessage.includes("Authentication") || 
+          errorMessage.includes("401") || 
+          errorMessage.includes("Network error")) {
         dispatch({ type: "SET_PRODUCTS", products: [] });
       } else {
+        // Only log unexpected errors
+        console.error("Failed to load products:", error);
         dispatch({ type: "SET_PRODUCTS_ERROR", error: errorMessage });
         dispatch({ type: "SET_PRODUCTS", products: [] });
       }
@@ -214,12 +217,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       dispatch({ type: "SET_CART", cart: cartLines });
     } catch (error) {
-      console.error("Failed to load cart:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load cart";
-      // If it's an auth error, don't show error, just set empty cart
-      if (errorMessage.includes("Authentication") || errorMessage.includes("401")) {
+      // If it's an auth or network error, don't show error, just set empty cart (don't log)
+      if (errorMessage.includes("Authentication") || 
+          errorMessage.includes("401") || 
+          errorMessage.includes("Network error")) {
         dispatch({ type: "SET_CART", cart: [] });
       } else {
+        // Only log unexpected errors
+        console.error("Failed to load cart:", error);
         dispatch({ type: "SET_CART_ERROR", error: errorMessage });
         dispatch({ type: "SET_CART", cart: [] });
       }
@@ -266,10 +272,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       dispatch({ type: "SET_ORDERS", orders: mappedOrders });
     } catch (error) {
-      console.error("Failed to load orders:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load orders";
-      // If it's an auth error, don't show error, just set empty orders
-      if (errorMessage.includes("Authentication") || errorMessage.includes("401")) {
+      // If it's an auth or network error, don't show error, just set empty orders (don't log)
+      if (errorMessage.includes("Authentication") || 
+          errorMessage.includes("401") || 
+          errorMessage.includes("Network error")) {
         // Try to load from local storage as fallback
         try {
           const ordersRaw = await AsyncStorage.getItem(STORAGE_ORDERS_KEY);
@@ -286,6 +293,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           dispatch({ type: "SET_ORDERS", orders: [] });
         }
       } else {
+        // Only log unexpected errors
+        console.error("Failed to load orders:", error);
         dispatch({ type: "SET_ORDERS_ERROR", error: errorMessage });
         // Try to load from local storage as fallback
         try {

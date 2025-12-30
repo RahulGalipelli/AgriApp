@@ -32,13 +32,24 @@ export async function getProducts(): Promise<Product[]> {
       if (response.status === 401) {
         throw new Error("Authentication required");
       }
-      throw new Error(`Failed to fetch products: ${response.statusText}`);
+      const statusText = response.statusText || `HTTP ${response.status}`;
+      throw new Error(`Failed to fetch products: ${statusText}`);
     }
 
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error("Error fetching products:", error);
+    // Handle network errors silently (likely connectivity issues)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error("Network error: Unable to connect to server");
+    }
+    // Only log unexpected errors (not auth or network errors)
+    if (!(error instanceof Error && (
+      error.message.includes("Authentication") || 
+      error.message.includes("Network error")
+    ))) {
+      console.error("Error fetching products:", error);
+    }
     throw error;
   }
 }
@@ -60,7 +71,10 @@ export async function getProduct(productId: string): Promise<Product> {
 
     return await response.json();
   } catch (error) {
-    console.error("Error fetching product:", error);
+    // Only log unexpected errors
+    if (!(error instanceof Error && error.message.includes("Authentication"))) {
+      console.error("Error fetching product:", error);
+    }
     throw error;
   }
 }

@@ -31,7 +31,10 @@ export async function updateUser(data: UpdateUserRequest): Promise<void> {
       throw new Error(errorData.detail || `Failed to update user: ${response.statusText}`);
     }
   } catch (error) {
-    console.error("Error updating user:", error);
+    // Only log unexpected errors (not auth errors)
+    if (!(error instanceof Error && error.message.includes("Authentication"))) {
+      console.error("Error updating user:", error);
+    }
     throw error;
   }
 }

@@ -25,9 +25,10 @@ const HomeScreen = ({ navigation }: Props) => {
         
         if (token && isLoggedIn === "true") {
           // Refresh all data when screen is focused and user is logged in
-          refreshProducts().catch(console.error);
-          refreshCart().catch(console.error);
-          refreshOrders().catch(console.error);
+          // Silently handle errors (they're already handled in the store)
+          refreshProducts().catch(() => {});
+          refreshCart().catch(() => {});
+          refreshOrders().catch(() => {});
         }
       };
       
