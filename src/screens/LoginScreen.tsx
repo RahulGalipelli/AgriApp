@@ -36,8 +36,12 @@ type FormData = {
 
 const API_BASE = `${API_BASE_URL}/auth`;
 
-// Admin phone numbers that can bypass OTP (add your admin numbers here)
-const ADMIN_PHONE_NUMBERS = ["9999999999", "8888888888"]; // Replace with actual admin numbers
+// Admin phone numbers: use admin-login (no OTP). If that fails, 9999999999 can use dev bypass to skip login.
+const ADMIN_PHONE_NUMBERS = ["9999999999", "8888888888"];
+
+// When admin-login fails (e.g. production backend), 9999999999 can still skip login using this token (backend must accept it).
+const DEV_BYPASS_TOKEN = "dev-bypass-9999999999";
+const BYPASS_USER_ID = "e2759705-0a09-51c5-a83c-19d89b5fc120"; // must match backend uuid5(NAMESPACE_DNS, "agricure.bypass.9999999999")
 
 const LoginScreen: React.FC = () => {
   const { t } = useI18n();
@@ -73,20 +77,17 @@ const LoginScreen: React.FC = () => {
     console.log(data.mobileNumber);
     console.log(ADMIN_PHONE_NUMBERS.includes(data.mobileNumber));
 
-    // Check if admin user - bypass OTP
+    // Admin user: use admin-login (no OTP). If it fails, 9999999999 can skip login via dev bypass.
     if (ADMIN_PHONE_NUMBERS.includes(data.mobileNumber)) {
       setLoading(true);
       try {
-        // Direct login for admin (bypass OTP)
         const response = await fetch(`${API_BASE}/admin-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mobileNumber: data.mobileNumber })
         });
-        
-        const result = await response.json();
-        
-        
+        const result = await response.json().catch(() => ({}));
+
         if (response.ok && result.access_token) {
           await AsyncStorage.multiSet([
             ["accessToken", result.access_token],
@@ -95,13 +96,54 @@ const LoginScreen: React.FC = () => {
             ["isLoggedIn", "true"],
           ]);
           navigation.replace("Home");
-        } else {
-          // Fallback to regular OTP if admin login fails
-          await requestOtpForAdmin(data.mobileNumber);
+          return;
         }
+
+        // Admin-login failed (e.g. production backend). For 9999999999 only: skip login with dev bypass.
+        if (data.mobileNumber === "9999999999") {
+          const devUser = {
+            id: BYPASS_USER_ID,
+            phone: "9999999999",
+            name: "Admin",
+            language: "en",
+          };
+          await AsyncStorage.multiSet([
+            ["accessToken", DEV_BYPASS_TOKEN],
+            ["refreshToken", ""],
+            ["user", JSON.stringify(devUser)],
+            ["isLoggedIn", "true"],
+          ]);
+          navigation.replace("Home");
+          return;
+        }
+
+        // Other admin number (e.g. 8888888888): don't fall back to OTP to avoid rate limit
+        Alert.alert(
+          t("common.error"),
+          result?.detail || "Admin login failed. Use a backend that supports /auth/admin-login or try 9999999999."
+        );
       } catch (error) {
-        // Fallback to regular OTP if admin login fails
-        await requestOtpForAdmin(data.mobileNumber);
+        // Network/error: for 9999999999 still allow skip via dev bypass
+        if (data.mobileNumber === "9999999999") {
+          const devUser = {
+            id: BYPASS_USER_ID,
+            phone: "9999999999",
+            name: "Admin",
+            language: "en",
+          };
+          await AsyncStorage.multiSet([
+            ["accessToken", DEV_BYPASS_TOKEN],
+            ["refreshToken", ""],
+            ["user", JSON.stringify(devUser)],
+            ["isLoggedIn", "true"],
+          ]);
+          navigation.replace("Home");
+          return;
+        }
+        Alert.alert(
+          t("common.error"),
+          "Admin login failed. Use local backend or try again."
+        );
       } finally {
         setLoading(false);
       }

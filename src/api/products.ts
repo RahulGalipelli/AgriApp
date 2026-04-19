@@ -32,6 +32,10 @@ export async function getProducts(): Promise<Product[]> {
       if (response.status === 401) {
         throw new Error("Authentication required");
       }
+      // Don't throw detailed errors for server errors (5xx) - they'll be handled silently
+      if (response.status >= 500) {
+        throw new Error(`Server error: HTTP ${response.status}`);
+      }
       const statusText = response.statusText || `HTTP ${response.status}`;
       throw new Error(`Failed to fetch products: ${statusText}`);
     }

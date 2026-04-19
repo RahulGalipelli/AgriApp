@@ -34,6 +34,10 @@ export async function getCart(): Promise<Cart> {
       if (response.status === 401) {
         throw new Error("Authentication required");
       }
+      // Don't throw detailed errors for server errors (5xx) - they'll be handled silently
+      if (response.status >= 500) {
+        throw new Error(`Server error: HTTP ${response.status}`);
+      }
       const statusText = response.statusText || `HTTP ${response.status}`;
       throw new Error(`Failed to fetch cart: ${statusText}`);
     }
@@ -44,11 +48,19 @@ export async function getCart(): Promise<Cart> {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error("Network error: Unable to connect to server");
     }
-    // Only log unexpected errors (not auth or network errors)
-    if (!(error instanceof Error && (
+    // Don't log server errors (5xx) or network/auth errors - they're handled silently
+    if (error instanceof Error && (
       error.message.includes("Authentication") || 
-      error.message.includes("Network error")
-    ))) {
+      error.message.includes("Network error") ||
+      error.message.includes("Server error") ||
+      error.message.includes("500") ||
+      error.message.includes("502") ||
+      error.message.includes("503") ||
+      error.message.includes("504")
+    )) {
+      // Silently handle - don't log
+    } else {
+      // Only log unexpected errors (4xx client errors)
       console.error("Error fetching cart:", error);
     }
     throw error;

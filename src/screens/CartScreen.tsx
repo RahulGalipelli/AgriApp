@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, Text, FlatList, ScrollView, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigations/types";
@@ -16,10 +16,14 @@ export default function CartScreen({ navigation }: Props) {
   const [isClearing, setIsClearing] = useState(false);
   const { t } = useI18n();
 
-  // Initial load on mount only
+  // Initial load on mount only - use ref to prevent multiple calls
+  const hasLoadedRef = useRef(false);
   useEffect(() => {
-    refreshCart().catch(console.error);
-  }, []);
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      refreshCart().catch(() => {}); // Silently handle errors
+    }
+  }, [refreshCart]);
 
   const handleClearCart = () => {
     if (isClearing || loading.cart) return;
@@ -93,7 +97,12 @@ export default function CartScreen({ navigation }: Props) {
             refreshControl={
               <RefreshControl
                 refreshing={loading.cart && !isClearing}
-                onRefresh={refreshCart}
+                onRefresh={() => {
+                  // Only refresh if not already loading to prevent infinite loops
+                  if (!loading.cart && !isClearing) {
+                    refreshCart().catch(() => {}); // Silently handle errors
+                  }
+                }}
                 colors={[colors.primary]}
                 enabled={!isClearing}
               />
@@ -103,7 +112,7 @@ export default function CartScreen({ navigation }: Props) {
               if (!product) return null;
               const isDisabled = isClearing || loading.cart;
               return (
-                <Card variant="elevated" style={[styles.cartItem, isDisabled && styles.disabledItem]}>
+                <Card variant="elevated" style={StyleSheet.flatten([styles.cartItem, isDisabled && styles.disabledItem])}>
                   <View style={styles.itemContent}>
                     <View style={styles.itemImage}>
                       <Text style={styles.itemEmoji}>🌿</Text>
@@ -138,7 +147,7 @@ export default function CartScreen({ navigation }: Props) {
                       onPress={() => !isDisabled && removeFromCart(item.productId).catch(console.error)}
                       size="small"
                       variant="ghost"
-                      style={[styles.removeButton]}
+                      style={styles.removeButton}
                       textStyle={{ color: colors.error }}
                       disabled={isDisabled}
                     />

@@ -1,38 +1,31 @@
 /**
  * API Configuration
- * 
- * For development, update the IP address when switching networks:
- * - Find your computer's IP: ipconfig (Windows) or ifconfig (Mac/Linux)
- * - Update DEV_API_IP below
- * 
- * For production, use your production API URL
+ *
+ * Default: local backend (DEV_API_IP:DEV_API_PORT). Update DEV_API_IP when you change WiFi (ipconfig / ifconfig).
+ * For tunnel or production: set EXPO_PUBLIC_API_URL in .env to the cloud URL, then: npx expo start -c
  */
 
-// Development API IP - Update this when switching WiFi networks
-// Find your IP: Windows: ipconfig | Mac/Linux: ifconfig
-const DEV_API_IP = "172.23.208.1"; // Change this to your current network IP
-const DEV_API_PORT = "8003"; // Or 8002 if that's your backend port
+// Local backend - change IP when switching networks
+const DEV_API_IP = "172.23.208.1";
+const DEV_API_PORT = "8003";
+const LOCAL_API_URL = `http://${DEV_API_IP}:${DEV_API_PORT}`;
 
-// Production API URL (update when deploying)
-const PROD_API_URL = "https://your-production-api.com";
+// Production (use only when EXPO_PUBLIC_API_URL is set, e.g. for tunnel)
+const PROD_API_URL = "https://agriapp-backend-88a1.onrender.com";
 
-// Determine if we're in development or production
-const __DEV__ = process.env.NODE_ENV !== "production";
+// Default to local; override with EXPO_PUBLIC_API_URL in .env for production/tunnel
+export const API_BASE_URL =
+  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_API_URL) ||
+  LOCAL_API_URL;
 
-// Use development URL in dev mode, production URL otherwise
-// IMPORTANT: Update this with your actual Render backend URL
-// Get it from: Render Dashboard → Your Web Service → Settings → URL
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://agriapp-backend-88a1.onrender.com";
-
-// Debug: Log the API URL being used
-if (__DEV__) {
+if (__DEV__ !== false) {
   console.log("API Base URL:", API_BASE_URL);
 }
 
 // Helper to get current config (useful for debugging)
 export const getApiConfig = () => ({
   baseUrl: API_BASE_URL,
-  isDev: __DEV__,
+  localUrl: LOCAL_API_URL,
   ip: DEV_API_IP,
   port: DEV_API_PORT,
 });

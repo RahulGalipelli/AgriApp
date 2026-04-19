@@ -216,15 +216,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         quantity: item.quantity,
       }));
       dispatch({ type: "SET_CART", cart: cartLines });
+      dispatch({ type: "SET_CART_LOADING", loading: false });
     } catch (error) {
+      dispatch({ type: "SET_CART_LOADING", loading: false });
       const errorMessage = error instanceof Error ? error.message : "Failed to load cart";
-      // If it's an auth or network error, don't show error, just set empty cart (don't log)
+      // If it's an auth, network, or server error (5xx), don't show error, just set empty cart (don't log)
       if (errorMessage.includes("Authentication") || 
           errorMessage.includes("401") || 
-          errorMessage.includes("Network error")) {
+          errorMessage.includes("Network error") ||
+          errorMessage.includes("500") ||
+          errorMessage.includes("502") ||
+          errorMessage.includes("503") ||
+          errorMessage.includes("504")) {
         dispatch({ type: "SET_CART", cart: [] });
       } else {
-        // Only log unexpected errors
+        // Only log unexpected errors (4xx client errors)
         console.error("Failed to load cart:", error);
         dispatch({ type: "SET_CART_ERROR", error: errorMessage });
         dispatch({ type: "SET_CART", cart: [] });
